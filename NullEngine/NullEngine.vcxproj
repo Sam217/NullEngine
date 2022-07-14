@@ -74,28 +74,28 @@
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)bin\$(Platform)_$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)bin\Intermediates\$(Platform)_$(Configuration)\</IntDir>
-    <IncludePath>$(SolutionDir)Dependencies\glad\include\;$(VC_IncludePath);$(WindowsSDK_IncludePath);;$(SolutionDir)Dependencies\GLFW\include;$(SolutionDir)Dependencies\GLFW\include</IncludePath>
+    <IncludePath>$(SolutionDir)Dependencies\glad\include\;$(SolutionDir)Dependencies\;$(VC_IncludePath);$(WindowsSDK_IncludePath);;$(SolutionDir)Dependencies\GLFW\include;$(SolutionDir)Dependencies\GLFW\include</IncludePath>
     <LibraryPath>$(SolutionDir)Dependencies\GLFW\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)bin\$(Platform)_$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)bin\Intermediates\$(Platform)_$(Configuration)\</IntDir>
-    <IncludePath>$(SolutionDir)Dependencies\glad\include\;$(VC_IncludePath);$(WindowsSDK_IncludePath);;$(SolutionDir)Dependencies\GLFW\include;$(SolutionDir)Dependencies\GLFW\include</IncludePath>
+    <IncludePath>$(SolutionDir)Dependencies\glad\include\;$(SolutionDir)Dependencies\;$(VC_IncludePath);$(WindowsSDK_IncludePath);;$(SolutionDir)Dependencies\GLFW\include;$(SolutionDir)Dependencies\GLFW\include</IncludePath>
     <LibraryPath>$(SolutionDir)Dependencies\GLFW\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)bin\$(Platform)_$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)bin\Intermediates\$(Platform)_$(Configuration)\</IntDir>
-    <IncludePath>$(SolutionDir)Dependencies\glad\include\;$(IncludePath);$(SolutionDir)Dependencies\GLFW\include\</IncludePath>
+    <IncludePath>$(SolutionDir)Dependencies\glad\include\;$(SolutionDir)Dependencies\;$(IncludePath);$(SolutionDir)Dependencies\GLFW\include\</IncludePath>
     <LibraryPath>$(SolutionDir)Dependencies\GLFW\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)bin\$(Platform)_$(Configuration)\</OutDir>
     <IntDir>$(SolutionDir)bin\Intermediates\$(Platform)_$(Configuration)\</IntDir>
-    <IncludePath>$(SolutionDir)Dependencies\glad\include\;$(VC_IncludePath);$(WindowsSDK_IncludePath);;$(SolutionDir)Dependencies\GLFW\include;$(SolutionDir)Dependencies\GLFW\include</IncludePath>
+    <IncludePath>$(SolutionDir)Dependencies\glad\include\;$(SolutionDir)Dependencies\;$(VC_IncludePath);$(WindowsSDK_IncludePath);;$(SolutionDir)Dependencies\GLFW\include;$(SolutionDir)Dependencies\GLFW\include</IncludePath>
     <LibraryPath>$(SolutionDir)Dependencies\GLFW\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -163,12 +163,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="..\Dependencies\stb\stb_image.h" />
     <ClInclude Include="src\Engine.h" />
     <ClInclude Include="src\IEngine.h" />
     <ClInclude Include="src\Shader.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Dependencies\glad\src\glad.c" />
+    <ClCompile Include="..\Dependencies\stb\stb_image.cpp" />
     <ClCompile Include="src\Engine.cpp" />
     <ClCompile Include="src\Shader.cpp" />
   </ItemGroup>
