@@ -5,251 +5,248 @@
 #include "Engine.h"
 #include "IEngine.h"
 #include "Shader.h"
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb/stb_image.h"
 
-namespace NullEngine {
+namespace NullEngine
+{
 
-	const char *vertexShaderSource = "#version 330 core\n"
-									 "layout (location = 0) in vec3 aPos;\n"
-									 "layout (location = 1) in vec3 aColor;\n"
-								 	 "out vec4 vertexColor;\n"
+void framebuffer_size_callback(GLFWwindow* window, int width, int height)
+{
+  glViewport(0, 0, width, height);
+}
 
-									 "void main()\n"
-									 "{\n"
-									 "   gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
-									 "vertexColor = vec4(aColor, 1.0);\n"
-									 "}\0";
+void processInput(GLFWwindow* window)
+{
+  if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+    glfwSetWindowShouldClose(window, true);
+}
 
-	const char *fragmentShaderSource = "#version 330 core\n"
-									   "out vec4 FragColor;\n"
-									   "in vec4 vertexColor;\n"
+/***************************Engine***************************/
 
-									   "void main()\n"
-									   "{\n"
-									   "FragColor = vertexColor;\n"
-									   "}\n";
+void Engine::Init()
+{
+}
 
-	const char *fragmentShaderSource2 = "#version 330 core\n"
-									    "out vec4 FragColor;\n"
-									    "uniform vec4 ourColor;\n"
-									    
-									    "void main()\n"
-									    "{\n"
-									    "FragColor = ourColor;\n"
-									    "}\n";
+int Engine::Main()
+{
+  InitGLFW();
+  CreateShaders();
+  InitVertices();
 
-	void framebuffer_size_callback(GLFWwindow *window, int width, int height)
-	{
-		glViewport(0, 0, width, height);
-	}
+  // obtain resources path
+  std::string root = R"(..\Resources\)";
+  std::string container_tex_src = "container.jpg";
+  // texture loading from image
+  int width, height, nrChannels;
+  unsigned char* data = stbi_load((root + container_tex_src).c_str(), &width, &height, &nrChannels, 0);
 
-	void processInput(GLFWwindow *window)
-	{
-		if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-			glfwSetWindowShouldClose(window, true);
-	}
+  unsigned int texture;
+  glGenTextures(1, &texture);
+  // setting the texture filtering & wrapping options
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-	void Engine::Init()
-	{
-	}
+  if (data)
+  {
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+    glGenerateMipmap(GL_TEXTURE_2D);
 
-	int Engine::Main()
-	{
-		InitGLFW();
+    glBindTexture(GL_TEXTURE_2D, 0);
+  }
+  else
+  {
+    std::cout << "Texture failed to load!" << std::endl;
+  }
 
-		char rawPathName[MAX_PATH];
-		//GetModuleFileNameA(NULL, rawPathName, MAX_PATH);
-		GetCurrentDirectoryA(MAX_PATH, rawPathName);
+  stbi_image_free(data);
 
-		//std::string root = rawPathName + std::string(R"(..\NullEngine\src\)");
-		std::string root = R"(..\NullEngine\src\)";
-		
-		Shader shader1((root + "VertexShader.glsl").c_str(), (root+"FragmentShader.glsl").c_str());
-		Shader shader2((root + "VertexShader.glsl").c_str(), (root+"FragmentShader2.glsl").c_str());
+  unsigned int indices[] = {
+        0, 1, 3, // first triangle
+        1, 2, 3  // second triangle
+  };
 
-	/*	float vertices1[] = {
-			-0.5f, -0.5f, 0.0f,
-			0.5f, -0.5f, 0.0f,
-			0.0f, 0.5f, 0.0f,
-		};*/
+  // Set buffers
+  unsigned int VAOs[2];
+  glGenVertexArrays(2, VAOs);
 
-		float vertices1[] = {
-			// positions         // colors
-			 0.5f, -0.5f, 0.0f,  1.0f, 0.0f, 0.0f,   // bottom right
-			-0.5f, -0.5f, 0.0f,  0.0f, 1.0f, 0.0f,   // bottom left
-			 0.0f,  0.5f, 0.0f,  0.0f, 0.0f, 1.0f    // top 
-		};
+  unsigned int VBOs[2];
+  glGenBuffers(2, VBOs);
 
-		float vertices2[] = {
-			0.1f, 0.5f, 0.0f,
-			1.f, 0.5f, 0.0f,
-			0.6f, -0.5f, 0.0f
-		};
+  unsigned int EBO;
+  glGenBuffers(1, &EBO);
 
-		//float vertices1[] = {
-		//	-0.9f, -0.5f, 0.0f, // left
-		//	-0.0f, -0.5f, 0.0f, // right
-		//	-0.45f, 0.5f, 0.0f, // top
-		//};
-		//float vertices2[] = {
-		//	0.0f, -0.5f, 0.0f, // left
-		//	0.9f, -0.5f, 0.0f, // right
-		//	0.45f, 0.5f, 0.0f  // top
-		//};
+  // 1. bind Vertex Array Object
+  glBindVertexArray(VAOs[0]);
+  // 2. copy our vertices array in a buffer for OpenGL to use
+  glBindBuffer(GL_ARRAY_BUFFER, VBOs[0]);
+  glBufferData(GL_ARRAY_BUFFER, _vertices[0].size() * sizeof(float), _vertices[0].data(), GL_STATIC_DRAW);
 
-		//float vertices[] = {
-		//	0.5f, 0.5f, 0.0f,	// top right
-		//	0.5f, -0.5f, 0.0f,	// bottom right
-		//	-0.5f, -0.5f, 0.0f, // bottom left
-		//	-0.5f, 0.5f, 0.0f	// top left
-		//};
-		//unsigned int indices[] = {
-		//	// note that we start from 0!
-		//	0, 1, 3, // first triangle
-		//	1, 2, 3	 // second triangle
-		//}; 
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
-		// Set buffers
-		unsigned int VAOs[2];
-		glGenVertexArrays(2, VAOs); 
+  // 3. then set our vertex attributes pointers
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+  glEnableVertexAttribArray(0);
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+  glEnableVertexAttribArray(1);
+  glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 *sizeof(float)));
+  glEnableVertexAttribArray(2);
 
-		unsigned int VBOs[2];
-		glGenBuffers(2, VBOs);
+  // note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-		unsigned int EBO;
-		glGenBuffers(1, &EBO);
+  // You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
+  // VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
+  glBindVertexArray(0);
 
-		// 1. bind Vertex Array Object
-		glBindVertexArray(VAOs[0]);
-		// 2. copy our vertices array in a buffer for OpenGL to use
-		glBindBuffer(GL_ARRAY_BUFFER, VBOs[0]);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(vertices1), vertices1, GL_STATIC_DRAW);
+  // remember: do NOT unbind the EBO while a VAO is active as the bound element buffer object IS stored in the VAO; keep the EBO bound.
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
-		/*glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);*/
+  // Wireframe or normal drawing mode
+  //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+  //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-		// 3. then set our vertex attributes pointers
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)0);
-		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void *)(3 * sizeof(float)));
-		glEnableVertexAttribArray(1);
+  // Main loop
+  while (!glfwWindowShouldClose((GLFWwindow*)_window))
+  {
+    // process input
+    processInput((GLFWwindow*)_window);
 
-		// note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
+    // rendering
+    glClearColor(0.2f, 0.15f, 0.3f, 0.75f);
+    glClear(GL_COLOR_BUFFER_BIT);
 
-		// remember: do NOT unbind the EBO while a VAO is active as the bound element buffer object IS stored in the VAO; keep the EBO bound.
-		//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    float time = 0.;// glfwGetTime();
+    // 4. draw the object
+    _shaders[0]->Use();
+    _shaders[0]->SetFloat("rotation", time / 4.0f);
+    _shaders[0]->SetFloat("xoffset", (sin(time) / 4.0f));
 
-		// You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
-		// VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
-		glBindVertexArray(0);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glBindVertexArray(VAOs[0]);
+    //glDrawArrays(GL_TRIANGLES, 0, 3);
+    //glDrawArrays(GL_TRIANGLES, 0, 6);
 
-		glBindVertexArray(VAOs[1]);
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    //glBindVertexArray(0);
 
-		glBindBuffer(GL_ARRAY_BUFFER, VBOs[1]);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(vertices2), vertices2, GL_STATIC_DRAW);
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), nullptr);
-		glEnableVertexAttribArray(0);
+    glfwSwapBuffers((GLFWwindow*)_window);
+    glfwPollEvents();
+  }
 
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-		glBindVertexArray(0);
+  // optional: de-allocate all resources once they've outlived their purpose:
+  // ------------------------------------------------------------------------
+  glDeleteVertexArrays(2, VAOs);
+  glDeleteBuffers(2, VBOs);
+  glDeleteBuffers(1, &EBO);
 
-		// Wireframe or normal drawing mode
-		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-		//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+  glfwTerminate();
+  return 0;
+}
 
-		// Main loop
-		while(!glfwWindowShouldClose((GLFWwindow *)_window)) {
-			// process input
-			processInput((GLFWwindow *)_window);
+void Engine::InitGLFW()
+{
+  // Init  GLFW
+  std::cout << glfwInit() << std::endl;
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-			// rendering
-			glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-			glClear(GL_COLOR_BUFFER_BIT);
+  // Create window
+  _window = glfwCreateWindow(800, 600, "LearnOpenGL", NULL, NULL);
+  if (_window == NULL)
+  {
+    std::cout << "Failed to create GLFW window" << std::endl;
+    glfwTerminate();
+    return;
+  }
+  glfwMakeContextCurrent((GLFWwindow*)_window);
 
-			float time = glfwGetTime();
-			// 4. draw the object
-			shader1.Use();
-			shader1.SetFloat("rotation", time/4.0f);
-			shader1.SetFloat("xoffset", (sin(time) / 4.0f));
-			glBindVertexArray(VAOs[0]);
+  // Load GLAD
+  if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+  {
+    std::cout << "Failed to initialize GLAD" << std::endl;
+    return;
+  }
 
-			glDrawArrays(GL_TRIANGLES, 0, 3);
-			//glDrawArrays(GL_TRIANGLES, 0, 6);
+  int nrAttributes;
+  glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &nrAttributes);
+  std::cout << "Maximum nr of vertex attributes supported: " << nrAttributes << std::endl;
 
-			//glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-			//glBindVertexArray(0);
+  // Set Viewport
+  glViewport(0, 0, 800, 600);
 
-			shader2.Use();
+  // Set callback to call when window is resized
+  glfwSetFramebufferSizeCallback((GLFWwindow*)_window, framebuffer_size_callback);
 
-			// update the uniform color
-			float green = (sin(time) / 2.0f) + 0.5f;
-			float greenColor[4] = { 0.0f, green, 0.0f, 1.0f };
-			shader2.SetFloat4("ourColor", greenColor);
+}
 
-			glBindVertexArray(VAOs[1]);
-			glDrawArrays(GL_TRIANGLES, 0, 3);
+void Engine::CreateShaders()
+{
+  char rawPathName[MAX_PATH];
+  //GetModuleFileNameA(NULL, rawPathName, MAX_PATH);
+  GetCurrentDirectoryA(MAX_PATH, rawPathName);
 
-			glfwSwapBuffers((GLFWwindow *)_window);
-			glfwPollEvents();
-		}
+  //std::string root = rawPathName + std::string(R"(..\NullEngine\src\)");
+  std::string root = R"(..\NullEngine\src\)";
 
-		// optional: de-allocate all resources once they've outlived their purpose:
-		// ------------------------------------------------------------------------
-		glDeleteVertexArrays(2, VAOs);
-		glDeleteBuffers(2, VBOs);
-		glDeleteBuffers(1, &EBO);
+  std::unique_ptr<Shader> shader1(new Shader((root + "VertexShader.glsl").c_str(), (root + "FragmentShader.glsl").c_str()));
+  std::unique_ptr<Shader> shader2(new Shader((root + "VertexShader.glsl").c_str(), (root + "FragmentShader2.glsl").c_str()));
 
-		glfwTerminate();
-		return 0;
-	}
+  /*std::unique_ptr<Shader> shader1 = std::make_unique<Shader>((root + "VertexShader.glsl").c_str(), (root + "FragmentShader.glsl").c_str());
+  std::unique_ptr<Shader> shader2 = std::make_unique<Shader>((root + "VertexShader.glsl").c_str(), (root + "FragmentShader2.glsl").c_str());*/
 
-	void Engine::InitGLFW()
-	{
-		// Init  GLFW
-		std::cout << glfwInit() << std::endl;
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+  _shaders.push_back(std::move(shader1));
+  _shaders.push_back(std::move(shader2));
+}
 
-		// Create window
-		_window = glfwCreateWindow(800, 600, "LearnOpenGL", NULL, NULL);
-		if(_window == NULL) {
-			std::cout << "Failed to create GLFW window" << std::endl;
-			glfwTerminate();
-			return;
-		}
-		glfwMakeContextCurrent((GLFWwindow*)_window);
+void Engine::InitVertices()
+{
+  // triangle glowing
+  std::vector<float> vertices1 = {
+    // positions         // colors
+     0.5f, -0.5f, 0.0f,  1.0f, 0.0f, 0.0f,   // bottom right
+    -0.5f, -0.5f, 0.0f,  0.0f, 1.0f, 0.0f,   // bottom left
+     0.0f,  0.5f, 0.0f,  0.0f, 0.0f, 1.0f    // top 
+  };
 
-		// Load GLAD
-		if(!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-			std::cout << "Failed to initialize GLAD" << std::endl;
-			return;
-		}
+  //triangle rotating
+  std::vector<float> vertices2 = {
+    0.1f, 0.5f, 0.0f,
+    1.f, 0.5f, 0.0f,
+    0.6f, -0.5f, 0.0f
+  };
 
-		int nrAttributes;
-		glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &nrAttributes);
-		std::cout << "Maximum nr of vertex attributes supported: " << nrAttributes << std::endl;
+  // rectangle for the container texture
+  std::vector<float> vertices = {
+    // positions          // colors           // texture coords
+     0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,   // top right
+     0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,   // bottom right
+    -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,   // bottom left
+    -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f    // top left 
+  };
 
-		// Set Viewport
-		glViewport(0, 0, 800, 600);
+  _vertices.push_back(vertices);
+  _vertices.push_back(vertices1);
+  _vertices.push_back(vertices2);
+}
 
-		// Set callback to call when window is resized
-		glfwSetFramebufferSizeCallback((GLFWwindow *)_window, framebuffer_size_callback);
+NULLENGINE_API void* CreateEngine()
+{
+  Engine* e = new NullEngine::Engine;
+  /*e->Init();
+  e->Present();*/
+  return e;
+}
 
-	}
-
-	NULLENGINE_API void *CreateEngine()
-	{
-		Engine *e = new NullEngine::Engine;
-		/*e->Init();
-		e->Present();*/
-		return e;
-	}
-
-	NULLENGINE_API void ReleaseEngine(void *instance)
-	{
-		std::cout << "Engine was destroyed..." << std::endl;
-		delete(NullEngine::Engine *)instance;
-	}
+NULLENGINE_API void ReleaseEngine(void* instance)
+{
+  std::cout << "Engine was destroyed..." << std::endl;
+  delete(NullEngine::Engine*)instance;
+}
 
 } // namespace NullEngine

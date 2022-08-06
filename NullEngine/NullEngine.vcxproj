@@ -170,7 +170,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Dependencies\glad\src\glad.c" />
-    <ClCompile Include="..\Dependencies\stb\stb_image.cpp" />
     <ClCompile Include="src\Engine.cpp" />
     <ClCompile Include="src\Shader.cpp" />
   </ItemGroup>

@@ -1,7 +1,9 @@
 #pragma once
 
 #include <string>
+#include <vector>
 #include "IEngine.h"
+#include "Shader.h"
 
 
 
@@ -15,6 +17,10 @@ namespace NullEngine {
 	private:
 		//! Window
 		void *_window = nullptr;
+		//! list of shaders
+		std::vector<std::unique_ptr<Shader>> _shaders;
+		//!
+		std::vector<std::vector<float>> _vertices;
 
 	public:
 		//! Dtor
@@ -27,6 +33,10 @@ namespace NullEngine {
 	private:
 		//! Init GL Framework
 		void InitGLFW();
+		//! Create shaders
+		void CreateShaders();
+		//!
+		void InitVertices();
 	};
 
 } // namespace NullEngine
