@@ -5,6 +5,7 @@
 #include "Engine.h"
 #include "IEngine.h"
 #include "Shader.h"
+#include "Texture.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb/stb_image.h"
 
@@ -37,36 +38,42 @@ int Engine::Main()
   // obtain resources path
   std::string root = R"(..\Resources\)";
   std::string container_tex_src = "container.jpg";
+  std::string face_tex_src("awesomeface.png");
   // texture loading from image
-  int width, height, nrChannels;
-  unsigned char* data = stbi_load((root + container_tex_src).c_str(), &width, &height, &nrChannels, 0);
+  //int width, height, nrChannels;
+  //unsigned char* data = stbi_load((root + container_tex_src).c_str(), &width, &height, &nrChannels, 0);
 
-  unsigned int texture;
-  glGenTextures(1, &texture);
-  // setting the texture filtering & wrapping options
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  //unsigned int texture;
+  //glGenTextures(1, &texture);
+  //// setting the texture filtering & wrapping options
+  //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+  //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+  //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-  if (data)
-  {
-    glBindTexture(GL_TEXTURE_2D, texture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-    glGenerateMipmap(GL_TEXTURE_2D);
+  //if (data)
+  //{
+  //  glBindTexture(GL_TEXTURE_2D, texture);
+  //  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+  //  glGenerateMipmap(GL_TEXTURE_2D);
 
-    glBindTexture(GL_TEXTURE_2D, 0);
-  }
-  else
-  {
-    std::cout << "Texture failed to load!" << std::endl;
-  }
+  //  glBindTexture(GL_TEXTURE_2D, 0);
+  //}
+  //else
+  //{
+  //  std::cout << "Texture failed to load!" << std::endl;
+  //}
 
-  stbi_image_free(data);
+  //stbi_image_free(data);
+
+  Texture texture1(container_tex_src);
+  Texture texture2(face_tex_src, true);
+  texture1.Load(root, GL_RGB);
+  texture2.Load(root, GL_RGBA);
 
   unsigned int indices[] = {
-        0, 1, 3, // first triangle
-        1, 2, 3  // second triangle
+        0, 1, 2, // first triangle
+        3, 0, 2  // second triangle
   };
 
   // Set buffers
@@ -120,16 +127,22 @@ int Engine::Main()
     glClearColor(0.2f, 0.15f, 0.3f, 0.75f);
     glClear(GL_COLOR_BUFFER_BIT);
 
+    //glBindTexture(GL_TEXTURE_2D, texture);
+    glActiveTexture(GL_TEXTURE0);
+    texture1.Use();
+    glActiveTexture(GL_TEXTURE1);
+    texture2.Use();
+    glBindVertexArray(VAOs[0]);
+    //glDrawArrays(GL_TRIANGLES, 0, 3);
+    //glDrawArrays(GL_TRIANGLES, 0, 6);
+
     float time = 0.;// glfwGetTime();
     // 4. draw the object
     _shaders[0]->Use();
     _shaders[0]->SetFloat("rotation", time / 4.0f);
     _shaders[0]->SetFloat("xoffset", (sin(time) / 4.0f));
-
-    glBindTexture(GL_TEXTURE_2D, texture);
-    glBindVertexArray(VAOs[0]);
-    //glDrawArrays(GL_TRIANGLES, 0, 3);
-    //glDrawArrays(GL_TRIANGLES, 0, 6);
+    _shaders[0]->SetInt("texture1", 0);
+    _shaders[0]->SetInt("texture2", 1);
 
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
     //glBindVertexArray(0);
