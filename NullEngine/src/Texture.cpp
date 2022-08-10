@@ -3,7 +3,7 @@
 #include "stb/stb_image.h"
 #include "Texture.h"
 
-bool Texture::Load(std::string& path, int mode)
+bool Texture::Load(std::string& path, int mode, int wrapMode)
 {
   std::string root = R"(..\Resources\)";
   int nrChannels;
@@ -12,15 +12,18 @@ bool Texture::Load(std::string& path, int mode)
   stbi_set_flip_vertically_on_load(false);
 
   glGenTextures(1, &_glId);
+  glBindTexture(GL_TEXTURE_2D, _glId);
   // setting the texture filtering & wrapping options
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+  //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+ // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrapMode);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrapMode);
+
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
   if (data)
   {
-    glBindTexture(GL_TEXTURE_2D, _glId);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, _width, _height, 0, mode, GL_UNSIGNED_BYTE, data);
     glGenerateMipmap(GL_TEXTURE_2D);
 

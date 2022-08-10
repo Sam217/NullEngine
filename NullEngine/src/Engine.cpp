@@ -17,10 +17,19 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
   glViewport(0, 0, width, height);
 }
 
-void processInput(GLFWwindow* window)
+void Engine::processInput()
 {
-  if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-    glfwSetWindowShouldClose(window, true);
+  if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+    glfwSetWindowShouldClose((GLFWwindow*)_window, true);
+
+  if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_UP) == GLFW_PRESS && _ratio < 100)
+  {
+    ++_ratio;
+  }
+  if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_DOWN) == GLFW_PRESS && _ratio > 0)
+  {
+    --_ratio;
+  }
 }
 
 /***************************Engine***************************/
@@ -68,8 +77,8 @@ int Engine::Main()
 
   Texture texture1(container_tex_src);
   Texture texture2(face_tex_src, true);
-  texture1.Load(root, GL_RGB);
-  texture2.Load(root, GL_RGBA);
+  texture1.Load(root, GL_RGB, GL_CLAMP_TO_EDGE);
+  texture2.Load(root, GL_RGBA, GL_REPEAT);
 
   unsigned int indices[] = {
         0, 1, 2, // first triangle
@@ -83,8 +92,8 @@ int Engine::Main()
   unsigned int VBOs[2];
   glGenBuffers(2, VBOs);
 
-  unsigned int EBO;
-  glGenBuffers(1, &EBO);
+  unsigned int EBO[2];
+  glGenBuffers(2, EBO);
 
   // 1. bind Vertex Array Object
   glBindVertexArray(VAOs[0]);
@@ -92,7 +101,7 @@ int Engine::Main()
   glBindBuffer(GL_ARRAY_BUFFER, VBOs[0]);
   glBufferData(GL_ARRAY_BUFFER, _vertices[0].size() * sizeof(float), _vertices[0].data(), GL_STATIC_DRAW);
 
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO[0]);
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
   // 3. then set our vertex attributes pointers
@@ -113,15 +122,46 @@ int Engine::Main()
   // remember: do NOT unbind the EBO while a VAO is active as the bound element buffer object IS stored in the VAO; keep the EBO bound.
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
+  ////------------- bind vertex array object for awesomoeface
+  //glBindVertexArray(VAOs[1]);
+
+  //glBindBuffer(GL_ARRAY_BUFFER, VBOs[1]);
+  //glBufferData(GL_ARRAY_BUFFER, _vertices[1].size() * sizeof(float), _vertices[1].data(), GL_STATIC_DRAW);
+
+  //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO[1]);
+  //glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+  //glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+  //glEnableVertexAttribArray(0);
+  //glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+  //glEnableVertexAttribArray(1);
+  //glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+  //glEnableVertexAttribArray(2);
+
+  //// note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
+  //glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+  //// You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
+  //// VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
+  //glBindVertexArray(0);
+  //// remember: do NOT unbind the EBO while a VAO is active as the bound element buffer object IS stored in the VAO; keep the EBO bound.
+  //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+  //-------------------------------
+
   // Wireframe or normal drawing mode
   //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
   //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+  _shaders[0]->Use();
+  _shaders[0]->SetInt("texture1", 0);
+  _shaders[0]->SetInt("texture2", 1);
 
   // Main loop
   while (!glfwWindowShouldClose((GLFWwindow*)_window))
   {
     // process input
-    processInput((GLFWwindow*)_window);
+    processInput();
 
     // rendering
     glClearColor(0.2f, 0.15f, 0.3f, 0.75f);
@@ -130,22 +170,24 @@ int Engine::Main()
     //glBindTexture(GL_TEXTURE_2D, texture);
     glActiveTexture(GL_TEXTURE0);
     texture1.Use();
+
     glActiveTexture(GL_TEXTURE1);
     texture2.Use();
-    glBindVertexArray(VAOs[0]);
-    //glDrawArrays(GL_TRIANGLES, 0, 3);
-    //glDrawArrays(GL_TRIANGLES, 0, 6);
 
     float time = 0.;// glfwGetTime();
     // 4. draw the object
     _shaders[0]->Use();
     _shaders[0]->SetFloat("rotation", time / 4.0f);
     _shaders[0]->SetFloat("xoffset", (sin(time) / 4.0f));
-    _shaders[0]->SetInt("texture1", 0);
-    _shaders[0]->SetInt("texture2", 1);
+    _shaders[0]->SetFloat("ratio", _ratio / 100.0f);
 
+    glBindVertexArray(VAOs[0]);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-    //glBindVertexArray(0);
+    //glDrawArrays(GL_TRIANGLES, 0, 3);
+    //glDrawArrays(GL_TRIANGLES, 0, 6);
+
+    //glBindVertexArray(VAOs[1]);
+    //glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
     glfwSwapBuffers((GLFWwindow*)_window);
     glfwPollEvents();
@@ -155,7 +197,7 @@ int Engine::Main()
   // ------------------------------------------------------------------------
   glDeleteVertexArrays(2, VAOs);
   glDeleteBuffers(2, VBOs);
-  glDeleteBuffers(1, &EBO);
+  glDeleteBuffers(2, EBO);
 
   glfwTerminate();
   return 0;
@@ -235,7 +277,7 @@ void Engine::InitVertices()
   };
 
   // rectangle for the container texture
-  std::vector<float> vertices = {
+  std::vector<float> verticesa = {
     // positions          // colors           // texture coords
      0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,   // top right
      0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,   // bottom right
@@ -243,7 +285,17 @@ void Engine::InitVertices()
     -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f    // top left 
   };
 
-  _vertices.push_back(vertices);
+  // rectangle for the awesomeface texture
+  std::vector<float> verticesb = {
+    // positions          // colors           // texture coords
+     0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   0.55f, 0.55f,   // top right
+     0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   0.45f, 0.55f,   // bottom right
+    - 0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,  0.45f, 0.45f,   // bottom left
+    - 0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,  0.45f, 0.55f,   // top left 
+  };
+
+  _vertices.push_back(verticesa);
+  _vertices.push_back(verticesb);
   _vertices.push_back(vertices1);
   _vertices.push_back(vertices2);
 }

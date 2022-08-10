@@ -17,6 +17,8 @@ namespace NullEngine {
 	private:
 		//! Window
 		void *_window = nullptr;
+		//! input for GLSL mix function
+		int _ratio = 2;
 		//! list of shaders
 		std::vector<std::unique_ptr<Shader>> _shaders;
 		//!
@@ -37,6 +39,8 @@ namespace NullEngine {
 		void CreateShaders();
 		//!
 		void InitVertices();
+		//! Process input
+		void processInput();
 	};
 
 } // namespace NullEngine
