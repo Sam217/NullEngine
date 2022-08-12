@@ -8,6 +8,8 @@ out vec2 TexCoord;
 
 //out vec4 vertexColor;
 //out vec4 vertexColor2;
+
+uniform mat4 transform;
 uniform float rotation;
 
 uniform float xoffset;
@@ -18,7 +20,8 @@ void main()
 	float sin60 = 1.7320508076/2.0;
 	float pi = 3.141592653589793238;
    
-	gl_Position = vec4(aPos.x*cos(rotation) + aPos.y*sin(rotation) + xoffset, aPos.y*cos(rotation) - aPos.x*sin(rotation), aPos.z, 1.0);
+	//gl_Position = vec4(aPos.x*cos(rotation) + aPos.y*sin(rotation) + xoffset, aPos.y*cos(rotation) - aPos.x*sin(rotation), aPos.z, 1.0);
+	gl_Position = transform * vec4(aPos, 1.0);
 	ourColor = aColor;
 	TexCoord = aTexCoord;
 	//float rot = 65 * pi / 180.0;

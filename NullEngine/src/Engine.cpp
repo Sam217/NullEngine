@@ -1,7 +1,12 @@
-#include <glad/glad.h>
-#include <glfw3.h>
 #include <iostream>
 #include <windows.h>
+
+#include <glad/glad.h>
+#include <glfw3.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
 #include "Engine.h"
 #include "IEngine.h"
 #include "Shader.h"
@@ -157,6 +162,9 @@ int Engine::Main()
   _shaders[0]->SetInt("texture1", 0);
   _shaders[0]->SetInt("texture2", 1);
 
+  /*trans = glm::rotate(trans, glm::radians(90.0f), glm::vec3(0.0, 0, 1.0));
+  trans = glm::scale(trans, glm::vec3(.5, .5, .5));*/
+
   // Main loop
   while (!glfwWindowShouldClose((GLFWwindow*)_window))
   {
@@ -174,12 +182,19 @@ int Engine::Main()
     glActiveTexture(GL_TEXTURE1);
     texture2.Use();
 
-    float time = 0.;// glfwGetTime();
+    float time = glfwGetTime();
     // 4. draw the object
     _shaders[0]->Use();
     _shaders[0]->SetFloat("rotation", time / 4.0f);
     _shaders[0]->SetFloat("xoffset", (sin(time) / 4.0f));
     _shaders[0]->SetFloat("ratio", _ratio / 100.0f);
+
+    glm::mat4 trans = glm::mat4(1.0);
+    glm::mat4 trans2 = glm::mat4(1.0);
+    trans = glm::rotate(trans, time / 1.0f, glm::vec3(0.0f, 0.0f, 1.0f));
+    trans = glm::translate(trans, glm::vec3(0.5f, -0.5f, 0.0f));
+
+    _shaders[0]->SetMat4("transform", trans);
 
     glBindVertexArray(VAOs[0]);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
@@ -187,7 +202,13 @@ int Engine::Main()
     //glDrawArrays(GL_TRIANGLES, 0, 6);
 
     //glBindVertexArray(VAOs[1]);
-    //glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    float scaleAmount = sin(time);
+    //scaleAmount = fabs(scaleAmount);
+    //scaleAmount += .25;
+    trans2 = glm::translate(trans2, glm::vec3(-0.5f, 0.5f, 0.0f));
+    trans2 = glm::scale(trans2, glm::vec3(scaleAmount, scaleAmount, scaleAmount));
+    _shaders[0]->SetMat4("transform", trans2);
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
     glfwSwapBuffers((GLFWwindow*)_window);
     glfwPollEvents();
@@ -212,7 +233,7 @@ void Engine::InitGLFW()
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
   // Create window
-  _window = glfwCreateWindow(800, 600, "LearnOpenGL", NULL, NULL);
+  _window = glfwCreateWindow(_width, _height, "LearnOpenGL", NULL, NULL);
   if (_window == NULL)
   {
     std::cout << "Failed to create GLFW window" << std::endl;
@@ -233,7 +254,7 @@ void Engine::InitGLFW()
   std::cout << "Maximum nr of vertex attributes supported: " << nrAttributes << std::endl;
 
   // Set Viewport
-  glViewport(0, 0, 800, 600);
+  glViewport(0, 0, _width, _height);
 
   // Set callback to call when window is resized
   glfwSetFramebufferSizeCallback((GLFWwindow*)_window, framebuffer_size_callback);

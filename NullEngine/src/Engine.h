@@ -19,6 +19,10 @@ namespace NullEngine {
 		void *_window = nullptr;
 		//! input for GLSL mix function
 		int _ratio = 2;
+		//
+		int _width = 1600;
+		// 
+		int _height = 900;
 		//! list of shaders
 		std::vector<std::unique_ptr<Shader>> _shaders;
 		//!
