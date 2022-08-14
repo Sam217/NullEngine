@@ -14,6 +14,7 @@ uniform float ratio;
 
 void main()
 {
-	vec2 faceCoord = vec2(1.0-TexCoord.x, TexCoord.y);
+	//vec2 faceCoord = vec2(1.0-TexCoord.x, TexCoord.y);
+	vec2 faceCoord = vec2(TexCoord.x, TexCoord.y);
 	FragColor = mix(texture(texture1, TexCoord), texture(texture2, faceCoord), ratio);
 }

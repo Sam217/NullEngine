@@ -35,6 +35,36 @@ void Engine::processInput()
   {
     --_ratio;
   }
+
+  if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_W) == GLFW_PRESS)
+  {
+    _zoffset += 0.1;
+  }
+
+  if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_S) == GLFW_PRESS)
+  {
+    _zoffset -= 0.1;
+  }
+
+  if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_R) == GLFW_PRESS)
+  {
+    _yoffset -= 0.1;
+  }
+
+  if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_F) == GLFW_PRESS)
+  {
+    _yoffset += 0.1;
+  }
+
+  if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_A) == GLFW_PRESS)
+  {
+    _xoffset += 0.1;
+  }
+
+  if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_D) == GLFW_PRESS)
+  {
+    _xoffset -= 0.1;
+  }
 }
 
 /***************************Engine***************************/
@@ -82,7 +112,7 @@ int Engine::Main()
 
   Texture texture1(container_tex_src);
   Texture texture2(face_tex_src, true);
-  texture1.Load(root, GL_RGB, GL_CLAMP_TO_EDGE);
+  texture1.Load(root, GL_RGB, GL_REPEAT);
   texture2.Load(root, GL_RGBA, GL_REPEAT);
 
   unsigned int indices[] = {
@@ -104,18 +134,21 @@ int Engine::Main()
   glBindVertexArray(VAOs[0]);
   // 2. copy our vertices array in a buffer for OpenGL to use
   glBindBuffer(GL_ARRAY_BUFFER, VBOs[0]);
-  glBufferData(GL_ARRAY_BUFFER, _vertices[0].size() * sizeof(float), _vertices[0].data(), GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, _vertices[4].size() * sizeof(float), _vertices[4].data(), GL_STATIC_DRAW);
 
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO[0]);
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
   // 3. then set our vertex attributes pointers
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+  //glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
   glEnableVertexAttribArray(0);
-  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+  
+  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+  //glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
   glEnableVertexAttribArray(1);
-  glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 *sizeof(float)));
-  glEnableVertexAttribArray(2);
+  /*glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 *sizeof(float)));
+  glEnableVertexAttribArray(2);*/
 
   // note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
   glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -164,7 +197,20 @@ int Engine::Main()
 
   /*trans = glm::rotate(trans, glm::radians(90.0f), glm::vec3(0.0, 0, 1.0));
   trans = glm::scale(trans, glm::vec3(.5, .5, .5));*/
+  glm::vec3 cubePositions[] = {
+    glm::vec3(0.0f,  0.0f,  0.0f),
+    glm::vec3(2.0f,  5.0f, -15.0f),
+    glm::vec3(-1.5f, -2.2f, -2.5f),
+    glm::vec3(-3.8f, -2.0f, -12.3f),
+    glm::vec3(2.4f, -0.4f, -3.5f),
+    glm::vec3(-1.7f,  3.0f, -7.5f),
+    glm::vec3(1.3f, -2.0f, -2.5f),
+    glm::vec3(1.5f,  2.0f, -2.5f),
+    glm::vec3(1.5f,  0.2f, -1.5f),
+    glm::vec3(-1.3f,  1.0f, -1.5f)
+  };
 
+  glEnable(GL_DEPTH_TEST);
   // Main loop
   while (!glfwWindowShouldClose((GLFWwindow*)_window))
   {
@@ -172,8 +218,9 @@ int Engine::Main()
     processInput();
 
     // rendering
-    glClearColor(0.2f, 0.15f, 0.3f, 0.75f);
-    glClear(GL_COLOR_BUFFER_BIT);
+    glClearColor(0.1f, 0.15f, 0.3f, 0.75f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    //glClear(GL_COLOR_BUFFER_BIT);
 
     //glBindTexture(GL_TEXTURE_2D, texture);
     glActiveTexture(GL_TEXTURE0);
@@ -185,30 +232,47 @@ int Engine::Main()
     float time = glfwGetTime();
     // 4. draw the object
     _shaders[0]->Use();
-    _shaders[0]->SetFloat("rotation", time / 4.0f);
-    _shaders[0]->SetFloat("xoffset", (sin(time) / 4.0f));
+    /*_shaders[0]->SetFloat("rotation", time / 4.0f);
+    _shaders[0]->SetFloat("xoffset", (sin(time) / 4.0f));*/
     _shaders[0]->SetFloat("ratio", _ratio / 100.0f);
 
-    glm::mat4 trans = glm::mat4(1.0);
-    glm::mat4 trans2 = glm::mat4(1.0);
+    /*glm::mat4 trans = glm::mat4(1.0);
     trans = glm::rotate(trans, time / 1.0f, glm::vec3(0.0f, 0.0f, 1.0f));
-    trans = glm::translate(trans, glm::vec3(0.5f, -0.5f, 0.0f));
+    trans = glm::translate(trans, glm::vec3(0.5f, -0.5f, 0.0f));*/
 
-    _shaders[0]->SetMat4("transform", trans);
+    glm::mat4 model = glm::mat4(1.0f);
+    //model = glm::rotate(model, glm::radians(-55.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    model = glm::rotate(model, time * glm::radians(50.0f), glm::vec3(0.5f, 1.0f, 0.0f));
+
+    glm::mat4 view = glm::mat4(1.0f);
+    // note that we're translating the scene in the reverse direction of where we want to move
+    view = glm::translate(view, glm::vec3(_xoffset, _yoffset, -3.0f + _zoffset));
+
+    glm::mat4 projection;
+    projection = glm::perspective(glm::radians(45.0f), float(_width) / float(_height), 0.1f, 100.0f);
+
+    //_shaders[0]->SetMat4("model", model);
+    _shaders[0]->SetMat4("view", view);
+    _shaders[0]->SetMat4("projection", projection);
 
     glBindVertexArray(VAOs[0]);
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-    //glDrawArrays(GL_TRIANGLES, 0, 3);
+    //glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    //glDrawArrays(GL_TRIANGLES, 0, 36);
     //glDrawArrays(GL_TRIANGLES, 0, 6);
 
-    //glBindVertexArray(VAOs[1]);
-    float scaleAmount = sin(time);
-    //scaleAmount = fabs(scaleAmount);
-    //scaleAmount += .25;
-    trans2 = glm::translate(trans2, glm::vec3(-0.5f, 0.5f, 0.0f));
-    trans2 = glm::scale(trans2, glm::vec3(scaleAmount, scaleAmount, scaleAmount));
-    _shaders[0]->SetMat4("transform", trans2);
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    for (unsigned int i = 0; i < 10; i++)
+    {
+      glm::mat4 model = glm::mat4(1.0f);
+      model = glm::translate(model, cubePositions[i]);
+      float angle = 20.0f * (i + 1);
+      if (i % 3 == 0)
+        angle = time * angle;
+
+      model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
+      _shaders[0]->SetMat4("model", model);
+
+      glDrawArrays(GL_TRIANGLES, 0, 36);
+    }
 
     glfwSwapBuffers((GLFWwindow*)_window);
     glfwPollEvents();
@@ -315,10 +379,55 @@ void Engine::InitVertices()
     - 0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,  0.45f, 0.55f,   // top left 
   };
 
+  std::vector<float> baseCubeVertices = {
+    -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+     0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
+     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+    -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+
+    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+     0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+     0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+     0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+    -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
+    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+
+    -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+    -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+    -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+     0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+     0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+     0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+     0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
+     0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+     0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+
+    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+    -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
+    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
+  };
+
   _vertices.push_back(verticesa);
   _vertices.push_back(verticesb);
   _vertices.push_back(vertices1);
   _vertices.push_back(vertices2);
+  _vertices.push_back(baseCubeVertices);
 }
 
 NULLENGINE_API void* CreateEngine()

@@ -23,3 +23,5 @@ namespace NullEngine {
 	extern "C" NULLENGINE_API void ReleaseEngine(void *instance);
 
 } // namespace NullEngine
+
+extern "C" NULLENGINE_API int LearnOGL();
