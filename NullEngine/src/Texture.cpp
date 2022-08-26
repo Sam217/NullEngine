@@ -3,6 +3,9 @@
 #include "stb/stb_image.h"
 #include "Texture.h"
 
+namespace NullEngine
+{
+
 bool Texture::Load(std::string& path, int mode, int wrapMode)
 {
   std::string root = R"(..\Resources\)";
@@ -47,3 +50,5 @@ void Texture::Use()
 {
   glBindTexture(GL_TEXTURE_2D, _glId);
 }
+
+} // namespace NullEngine

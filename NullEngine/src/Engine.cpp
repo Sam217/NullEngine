@@ -17,13 +17,74 @@
 namespace NullEngine
 {
 
-void framebuffer_size_callback(GLFWwindow* window, int width, int height)
+/***************************Engine***************************/
+
+Engine* Engine::_engineContext = nullptr;
+
+void Engine::Framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
   glViewport(0, 0, width, height);
 }
 
+void Engine::Mouse_callback(GLFWwindow* window, double xpos, double ypos)
+{
+  static float lastX = (float)_engineContext->_width / 2, lastY = (float)_engineContext->_height / 2;
+  //static float lastX, lastY;
+  static bool firstMouse = true;
+  if (firstMouse)
+  {
+    lastX = (float)xpos;
+    lastY = (float)ypos;
+    firstMouse = false;
+  }
+
+  // will be obtained through glfw mouse input functions
+   static float pitch = 0.0f, yaw = -90.0f, roll = 0.0f;
+
+  // clamp the pitch to avoid LookAt flip
+  if (pitch > 89)
+    pitch = 89;
+  else if (pitch < -89)
+    pitch = -89;
+
+  float xoffset = (float)xpos - lastX;
+  float yoffset = lastY - (float)ypos; // reversed since y-coordinates range from bottom to top
+  lastX = (float)xpos;
+  lastY = (float)ypos;
+
+  xoffset *= _engineContext->_msensitivity;
+  yoffset *= _engineContext->_msensitivity;
+
+  yaw += xoffset;
+  pitch += yoffset;
+
+  // get mouse input
+  glm::vec3 direction;
+  direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+  direction.y = sin(glm::radians(pitch));
+  direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+
+  _engineContext->_cameraFront = glm::normalize(direction);
+}
+
+void Engine::Scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{
+  _engineContext->_fov -= (float)yoffset;
+  if (_engineContext->_fov < FOVmin)
+    _engineContext->_fov = FOVmin;
+  if (_engineContext->_fov > FOVmax)
+    _engineContext->_fov = FOVmax;
+}
+
 void Engine::processInput()
 {
+  _engineContext = this;
+  static float lastFrame = (float)glfwGetTime();
+
+  float currentFrame = (float)glfwGetTime();
+  float deltaTime = currentFrame - lastFrame;
+  lastFrame = currentFrame;
+
   if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
     glfwSetWindowShouldClose((GLFWwindow*)_window, true);
 
@@ -36,38 +97,45 @@ void Engine::processInput()
     --_ratio;
   }
 
+  // camera control
+  const float cameraSpeed = 2.5f * deltaTime;
   if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_W) == GLFW_PRESS)
   {
-    _zoffset += 0.1;
+    _zoffset += 0.1f;
+    _cameraPos += cameraSpeed * _cameraFront;
   }
 
   if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_S) == GLFW_PRESS)
   {
-    _zoffset -= 0.1;
+    _zoffset -= 0.1f;
+    _cameraPos -= cameraSpeed * _cameraFront;
   }
 
   if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_R) == GLFW_PRESS)
   {
-    _yoffset -= 0.1;
+    _yoffset -= 0.1f;
+    _cameraPos += cameraSpeed * _cameraUp;
   }
 
   if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_F) == GLFW_PRESS)
   {
-    _yoffset += 0.1;
+    _yoffset += 0.1f;
+    _cameraPos -= cameraSpeed * _cameraUp;
   }
 
   if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_A) == GLFW_PRESS)
   {
-    _xoffset += 0.1;
+    _xoffset += 0.1f;
+    _cameraPos += cameraSpeed * glm::normalize(glm::cross(_cameraUp, _cameraFront));
   }
 
   if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_D) == GLFW_PRESS)
   {
-    _xoffset -= 0.1;
+    _xoffset -= 0.1f;
+    _cameraPos -= cameraSpeed * glm::normalize(glm::cross(_cameraUp, _cameraFront));
   }
-}
 
-/***************************Engine***************************/
+}
 
 void Engine::Init()
 {
@@ -143,7 +211,7 @@ int Engine::Main()
   //glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
   glEnableVertexAttribArray(0);
-  
+
   glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
   //glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
   glEnableVertexAttribArray(1);
@@ -218,7 +286,10 @@ int Engine::Main()
   glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
   glm::vec3 cameraRight = glm::normalize(glm::cross(up, cameraDirection));
 
-  glm::vec3 cameraUp = glm::cross(cameraDirection, cameraRight);
+  //glm::vec3 cameraUp = glm::cross(cameraDirection, cameraRight);
+
+  glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+  glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
   glEnable(GL_DEPTH_TEST);
   // Main loop
@@ -239,7 +310,7 @@ int Engine::Main()
     glActiveTexture(GL_TEXTURE1);
     texture2.Use();
 
-    float time = glfwGetTime();
+    float time = (float)glfwGetTime();
     // 4. draw the object
     _shaders[0]->Use();
     /*_shaders[0]->SetFloat("rotation", time / 4.0f);
@@ -262,10 +333,11 @@ int Engine::Main()
     float camX = sin(time) * radius;
     float camZ = cos(time) * radius;
 
-    view = glm::lookAt(glm::vec3(camX, 0.0, camZ), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
+    //view = glm::lookAt(glm::vec3(camX, 0.0, camZ), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
+    view = glm::lookAt(_cameraPos, _cameraPos + _cameraFront, _cameraUp);
 
     glm::mat4 projection;
-    projection = glm::perspective(glm::radians(45.0f), float(_width) / float(_height), 0.1f, 100.0f);
+    projection = glm::perspective(glm::radians(_fov), float(_width) / float(_height), 0.1f, 100.0f);
 
     //_shaders[0]->SetMat4("model", model);
     _shaders[0]->SetMat4("view", view);
@@ -337,8 +409,16 @@ void Engine::InitGLFW()
   glViewport(0, 0, _width, _height);
 
   // Set callback to call when window is resized
-  glfwSetFramebufferSizeCallback((GLFWwindow*)_window, framebuffer_size_callback);
+  glfwSetFramebufferSizeCallback((GLFWwindow*)_window, Framebuffer_size_callback);
 
+  // Set mouse input
+  glfwSetInputMode((GLFWwindow*)_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
+  // Set mouse callback
+  glfwSetCursorPosCallback((GLFWwindow*)_window, Mouse_callback);
+
+  // Set mouse scroll callback
+  glfwSetScrollCallback((GLFWwindow*)_window, Scroll_callback);
 }
 
 void Engine::CreateShaders()
@@ -391,8 +471,8 @@ void Engine::InitVertices()
     // positions          // colors           // texture coords
      0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   0.55f, 0.55f,   // top right
      0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   0.45f, 0.55f,   // bottom right
-    - 0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,  0.45f, 0.45f,   // bottom left
-    - 0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,  0.45f, 0.55f,   // top left 
+    -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,  0.45f, 0.45f,   // bottom left
+    -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,  0.45f, 0.55f,   // top left 
   };
 
   std::vector<float> baseCubeVertices = {

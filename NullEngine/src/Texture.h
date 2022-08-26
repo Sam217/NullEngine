@@ -1,10 +1,13 @@
 #pragma once
 #include <string>
 
+namespace NullEngine
+{
+
 class Texture
 {
 public:
-  Texture(std::string& name, bool flip = false) : _name(name), _flip(flip){}
+  Texture(std::string& name, bool flip = false) : _name(name), _flip(flip) {}
 
   bool Load(std::string& path, int mode, int wrapMode);
   void Use();
@@ -17,3 +20,5 @@ private:
   int _height = -1;
 
 };
+
+} // namespace NullEngine

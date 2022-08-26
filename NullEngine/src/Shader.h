@@ -4,6 +4,8 @@
 
 #include <string>
 
+namespace NullEngine
+{
 
 class Shader
 {
@@ -45,3 +47,5 @@ private:
     // Compile routine
     unsigned CompileShader(unsigned shaderType, const char* shaderSource);
 };
+
+} // namespace NullEngine

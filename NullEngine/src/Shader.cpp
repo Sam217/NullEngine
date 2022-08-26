@@ -4,6 +4,9 @@
 #include <glm/glm.hpp>
 #include "Shader.h"
 
+namespace NullEngine
+{
+
 Shader::Shader(const char* vertexPath, const char* fragmentPath)
 {
     // 1. retrieve the vertex/fragment source code from filePath
@@ -169,4 +172,6 @@ unsigned Shader::CompileShader(unsigned shaderType, const char* shaderSource)
 
 	return shader;
 }
+
+} // namespace NullEngine
 
