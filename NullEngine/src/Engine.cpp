@@ -21,6 +21,27 @@ namespace NullEngine
 
 Engine* Engine::_engineContext = nullptr;
 
+glm::mat4 myLookAt(Camera& c)
+{
+  glm::vec3 worldUp(0.0f, 1.0f, 0.0f);
+  glm::vec3 camRight = glm::normalize(glm::cross(c._front, worldUp));
+  glm::vec3 camUp = glm::normalize(glm::cross(camRight, c._front));
+
+  glm::vec4 rightVec(camRight, 0.0f);
+  glm::vec4 upVec(camUp, 0.0f);
+  glm::vec4 dirVec(-c._front, 0.0f);
+  glm::vec4 lastVec(0.0f, 0.0f, 0.0f, 1.0f);
+
+  glm::mat4 A(rightVec, upVec, dirVec, lastVec);
+  A = glm::transpose(A);
+
+  glm::mat4 B = glm::mat4(1.0f);
+  B[3] += glm::vec4(-c._pos, 0.0f);
+
+  glm::mat4 lookAt = A * B;
+  return lookAt;
+}
+
 void Engine::Framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
   glViewport(0, 0, width, height);
@@ -64,16 +85,16 @@ void Engine::Mouse_callback(GLFWwindow* window, double xpos, double ypos)
   direction.y = sin(glm::radians(pitch));
   direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
 
-  _engineContext->_cameraFront = glm::normalize(direction);
+  _engineContext->_camera._front= glm::normalize(direction);
 }
 
 void Engine::Scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
-  _engineContext->_fov -= (float)yoffset;
-  if (_engineContext->_fov < FOVmin)
-    _engineContext->_fov = FOVmin;
-  if (_engineContext->_fov > FOVmax)
-    _engineContext->_fov = FOVmax;
+  _engineContext->_camera._fov -= (float)yoffset;
+  if (_engineContext->_camera._fov < FOVmin)
+    _engineContext->_camera._fov = FOVmin;
+  if (_engineContext->_camera._fov > FOVmax)
+    _engineContext->_camera._fov = FOVmax;
 }
 
 void Engine::processInput()
@@ -98,41 +119,53 @@ void Engine::processInput()
   }
 
   // camera control
-  const float cameraSpeed = 2.5f * deltaTime;
+  float cameraSpeed = 2.5f * deltaTime;
+
+  glm::vec3 fpsFront(_camera._front.x, 0.0f, _camera._front.z);
+
+  if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+  {
+    cameraSpeed *= 3.0f;
+  }
+
   if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_W) == GLFW_PRESS)
   {
     _zoffset += 0.1f;
-    _cameraPos += cameraSpeed * _cameraFront;
+    //_camera._pos += cameraSpeed * _camera._front;
+    _camera._pos += cameraSpeed * fpsFront;
   }
 
   if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_S) == GLFW_PRESS)
   {
     _zoffset -= 0.1f;
-    _cameraPos -= cameraSpeed * _cameraFront;
+    //_camera._pos -= cameraSpeed * _camera._front;
+    _camera._pos -= cameraSpeed * fpsFront;
   }
 
   if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_R) == GLFW_PRESS)
   {
     _yoffset -= 0.1f;
-    _cameraPos += cameraSpeed * _cameraUp;
+    _camera._pos += cameraSpeed * _camera._up;
   }
 
   if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_F) == GLFW_PRESS)
   {
     _yoffset += 0.1f;
-    _cameraPos -= cameraSpeed * _cameraUp;
+    _camera._pos -= cameraSpeed * _camera._up;
   }
 
   if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_A) == GLFW_PRESS)
   {
     _xoffset += 0.1f;
-    _cameraPos += cameraSpeed * glm::normalize(glm::cross(_cameraUp, _cameraFront));
+    //_camera._pos += cameraSpeed * glm::normalize(glm::cross(_camera._up, _camera._front));
+    _camera._pos += cameraSpeed * glm::normalize(glm::cross(_camera._up, fpsFront));
   }
 
   if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_D) == GLFW_PRESS)
   {
     _xoffset -= 0.1f;
-    _cameraPos -= cameraSpeed * glm::normalize(glm::cross(_cameraUp, _cameraFront));
+    //_camera._pos -= cameraSpeed * glm::normalize(glm::cross(_camera._up, _camera._front));
+    _camera._pos -= cameraSpeed * glm::normalize(glm::cross(_camera._up, fpsFront));
   }
 
 }
@@ -263,8 +296,6 @@ int Engine::Main()
   _shaders[0]->SetInt("texture1", 0);
   _shaders[0]->SetInt("texture2", 1);
 
-  /*trans = glm::rotate(trans, glm::radians(90.0f), glm::vec3(0.0, 0, 1.0));
-  trans = glm::scale(trans, glm::vec3(.5, .5, .5));*/
   glm::vec3 cubePositions[] = {
     glm::vec3(0.0f,  0.0f,  0.0f),
     glm::vec3(2.0f,  5.0f, -15.0f),
@@ -277,19 +308,6 @@ int Engine::Main()
     glm::vec3(1.5f,  0.2f, -1.5f),
     glm::vec3(-1.3f,  1.0f, -1.5f)
   };
-
-  glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
-
-  glm::vec3 cameraTarget = glm::vec3(0.0f, 0.0f, 0.0f);
-  glm::vec3 cameraDirection = glm::normalize(cameraPos - cameraTarget);
-
-  glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
-  glm::vec3 cameraRight = glm::normalize(glm::cross(up, cameraDirection));
-
-  //glm::vec3 cameraUp = glm::cross(cameraDirection, cameraRight);
-
-  glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
-  glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
   glEnable(GL_DEPTH_TEST);
   // Main loop
@@ -313,33 +331,19 @@ int Engine::Main()
     float time = (float)glfwGetTime();
     // 4. draw the object
     _shaders[0]->Use();
-    /*_shaders[0]->SetFloat("rotation", time / 4.0f);
-    _shaders[0]->SetFloat("xoffset", (sin(time) / 4.0f));*/
     _shaders[0]->SetFloat("ratio", _ratio / 100.0f);
 
-    /*glm::mat4 trans = glm::mat4(1.0);
-    trans = glm::rotate(trans, time / 1.0f, glm::vec3(0.0f, 0.0f, 1.0f));
-    trans = glm::translate(trans, glm::vec3(0.5f, -0.5f, 0.0f));*/
-
     glm::mat4 model = glm::mat4(1.0f);
-    //model = glm::rotate(model, glm::radians(-55.0f), glm::vec3(1.0f, 0.0f, 0.0f));
     model = glm::rotate(model, time * glm::radians(50.0f), glm::vec3(0.5f, 1.0f, 0.0f));
 
     // note that we're translating the scene in the reverse direction of where we want to move
     glm::mat4 view = glm::mat4(1.0f);
-    //view = glm::translate(view, glm::vec3(_xoffset, _yoffset, -3.0f + _zoffset));
-
-    const float radius = 10.0f;
-    float camX = sin(time) * radius;
-    float camZ = cos(time) * radius;
-
-    //view = glm::lookAt(glm::vec3(camX, 0.0, camZ), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
-    view = glm::lookAt(_cameraPos, _cameraPos + _cameraFront, _cameraUp);
+    view = myLookAt(_camera);
+    //view = glm::lookAt(_camera._pos, _camera._pos + _camera._front, _camera._up);
 
     glm::mat4 projection;
-    projection = glm::perspective(glm::radians(_fov), float(_width) / float(_height), 0.1f, 100.0f);
+    projection = glm::perspective(glm::radians(_camera._fov), float(_width) / float(_height), 0.1f, 100.0f);
 
-    //_shaders[0]->SetMat4("model", model);
     _shaders[0]->SetMat4("view", view);
     _shaders[0]->SetMat4("projection", projection);
 

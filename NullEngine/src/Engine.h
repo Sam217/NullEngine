@@ -5,6 +5,7 @@
 #include <glm/glm.hpp>
 #include "IEngine.h"
 #include "Shader.h"
+#include "Camera.h"
 
 
 
@@ -24,13 +25,8 @@ namespace NullEngine {
 	private:
 		//! Window
 		void *_window = nullptr;
-		//! Camera positions
-		glm::vec3 _cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
-    glm::vec3 _cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
-    glm::vec3 _cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
-		
-		//! Field of view
-		float _fov = 60.0;
+		//! Camera
+		Camera _camera;
 
 		//! input for GLSL mix function
 		int _ratio = 20;

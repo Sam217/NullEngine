@@ -59,7 +59,7 @@ NULLENGINE_API int LearnOGL()
   // build and compile our shader zprogram
   // ------------------------------------
   std::string root = R"(..\NullEngine\src\)";
-  Shader ourShader((root + "VertexShader.glsl").c_str(), (root + "FragmentShader.glsl").c_str());
+  NullEngine::Shader ourShader((root + "VertexShader.glsl").c_str(), (root + "FragmentShader.glsl").c_str());
 
   // set up vertex data (and buffer(s)) and configure vertex attributes
   // ------------------------------------------------------------------

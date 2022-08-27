@@ -9,7 +9,7 @@ int main()
 	//e->Run();
 	e->Main();
 
-	LearnOGL();
+	//LearnOGL();
 
 	NullEngine::ReleaseEngine(e);
 	//std::cin.get();
