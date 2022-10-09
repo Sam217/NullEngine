@@ -6,12 +6,11 @@
 namespace NullEngine
 {
 
-bool Texture::Load(std::string& path, int mode, int wrapMode)
+bool Texture::Load(const std::string& path, int mode, int wrapMode)
 {
-  std::string root = R"(..\Resources\)";
   int nrChannels;
   stbi_set_flip_vertically_on_load(_flip);
-  unsigned char* data = stbi_load((root + _name).c_str(), &_width, &_height, &nrChannels, 0);
+  unsigned char* data = stbi_load((path).c_str(), &_width, &_height, &nrChannels, 0);
   stbi_set_flip_vertically_on_load(false);
 
   glGenTextures(1, &_glId);

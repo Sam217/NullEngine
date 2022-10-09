@@ -33,6 +33,9 @@
     <ClInclude Include="src\Camera.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\ObjectVertices.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Dependencies\glad\src\glad.c">
@@ -58,5 +61,8 @@
     <None Include="src\FragmentShader.glsl" />
     <None Include="src\VertexShader.glsl" />
     <None Include="src\FragmentShader2.glsl" />
+    <None Include="src\LightingCubeV.glsl" />
+    <None Include="src\LightingCubeF.glsl" />
+    <None Include="src\LightSourceF.glsl" />
   </ItemGroup>
 </Project>

@@ -21,27 +21,6 @@ namespace NullEngine
 
 Engine* Engine::_engineContext = nullptr;
 
-glm::mat4 myLookAt(Camera& c)
-{
-  glm::vec3 worldUp(0.0f, 1.0f, 0.0f);
-  glm::vec3 camRight = glm::normalize(glm::cross(c._front, worldUp));
-  glm::vec3 camUp = glm::normalize(glm::cross(camRight, c._front));
-
-  glm::vec4 rightVec(camRight, 0.0f);
-  glm::vec4 upVec(camUp, 0.0f);
-  glm::vec4 dirVec(-c._front, 0.0f);
-  glm::vec4 lastVec(0.0f, 0.0f, 0.0f, 1.0f);
-
-  glm::mat4 A(rightVec, upVec, dirVec, lastVec);
-  A = glm::transpose(A);
-
-  glm::mat4 B = glm::mat4(1.0f);
-  B[3] += glm::vec4(-c._pos, 0.0f);
-
-  glm::mat4 lookAt = A * B;
-  return lookAt;
-}
-
 void Engine::Framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
   glViewport(0, 0, width, height);
@@ -49,52 +28,12 @@ void Engine::Framebuffer_size_callback(GLFWwindow* window, int width, int height
 
 void Engine::Mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
-  static float lastX = (float)_engineContext->_width / 2, lastY = (float)_engineContext->_height / 2;
-  //static float lastX, lastY;
-  static bool firstMouse = true;
-  if (firstMouse)
-  {
-    lastX = (float)xpos;
-    lastY = (float)ypos;
-    firstMouse = false;
-  }
-
-  // will be obtained through glfw mouse input functions
-   static float pitch = 0.0f, yaw = -90.0f, roll = 0.0f;
-
-  // clamp the pitch to avoid LookAt flip
-  if (pitch > 89)
-    pitch = 89;
-  else if (pitch < -89)
-    pitch = -89;
-
-  float xoffset = (float)xpos - lastX;
-  float yoffset = lastY - (float)ypos; // reversed since y-coordinates range from bottom to top
-  lastX = (float)xpos;
-  lastY = (float)ypos;
-
-  xoffset *= _engineContext->_msensitivity;
-  yoffset *= _engineContext->_msensitivity;
-
-  yaw += xoffset;
-  pitch += yoffset;
-
-  // get mouse input
-  glm::vec3 direction;
-  direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
-  direction.y = sin(glm::radians(pitch));
-  direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-
-  _engineContext->_camera._front= glm::normalize(direction);
+  _engineContext->_camera.ProcessMouse(window, xpos, ypos);
 }
 
 void Engine::Scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
-  _engineContext->_camera._fov -= (float)yoffset;
-  if (_engineContext->_camera._fov < FOVmin)
-    _engineContext->_camera._fov = FOVmin;
-  if (_engineContext->_camera._fov > FOVmax)
-    _engineContext->_camera._fov = FOVmax;
+  _engineContext->_camera.ProcessMouseScroll(yoffset);
 }
 
 void Engine::processInput()
@@ -118,56 +57,8 @@ void Engine::processInput()
     --_ratio;
   }
 
-  // camera control
-  float cameraSpeed = 2.5f * deltaTime;
-
-  glm::vec3 fpsFront(_camera._front.x, 0.0f, _camera._front.z);
-
-  if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
-  {
-    cameraSpeed *= 3.0f;
-  }
-
-  if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_W) == GLFW_PRESS)
-  {
-    _zoffset += 0.1f;
-    //_camera._pos += cameraSpeed * _camera._front;
-    _camera._pos += cameraSpeed * fpsFront;
-  }
-
-  if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_S) == GLFW_PRESS)
-  {
-    _zoffset -= 0.1f;
-    //_camera._pos -= cameraSpeed * _camera._front;
-    _camera._pos -= cameraSpeed * fpsFront;
-  }
-
-  if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_R) == GLFW_PRESS)
-  {
-    _yoffset -= 0.1f;
-    _camera._pos += cameraSpeed * _camera._up;
-  }
-
-  if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_F) == GLFW_PRESS)
-  {
-    _yoffset += 0.1f;
-    _camera._pos -= cameraSpeed * _camera._up;
-  }
-
-  if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_A) == GLFW_PRESS)
-  {
-    _xoffset += 0.1f;
-    //_camera._pos += cameraSpeed * glm::normalize(glm::cross(_camera._up, _camera._front));
-    _camera._pos += cameraSpeed * glm::normalize(glm::cross(_camera._up, fpsFront));
-  }
-
-  if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_D) == GLFW_PRESS)
-  {
-    _xoffset -= 0.1f;
-    //_camera._pos -= cameraSpeed * glm::normalize(glm::cross(_camera._up, _camera._front));
-    _camera._pos -= cameraSpeed * glm::normalize(glm::cross(_camera._up, fpsFront));
-  }
-
+  // camera
+  _camera.ProcessKeyboard((GLFWwindow*)_window, deltaTime);
 }
 
 void Engine::Init()
@@ -185,41 +76,19 @@ int Engine::Main()
   std::string container_tex_src = "container.jpg";
   std::string face_tex_src("awesomeface.png");
   // texture loading from image
-  //int width, height, nrChannels;
-  //unsigned char* data = stbi_load((root + container_tex_src).c_str(), &width, &height, &nrChannels, 0);
 
-  //unsigned int texture;
-  //glGenTextures(1, &texture);
-  //// setting the texture filtering & wrapping options
-  //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-  //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-  //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-  //if (data)
-  //{
-  //  glBindTexture(GL_TEXTURE_2D, texture);
-  //  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-  //  glGenerateMipmap(GL_TEXTURE_2D);
-
-  //  glBindTexture(GL_TEXTURE_2D, 0);
-  //}
-  //else
-  //{
-  //  std::cout << "Texture failed to load!" << std::endl;
-  //}
-
-  //stbi_image_free(data);
-
-  Texture texture1(container_tex_src);
-  Texture texture2(face_tex_src, true);
-  texture1.Load(root, GL_RGB, GL_REPEAT);
-  texture2.Load(root, GL_RGBA, GL_REPEAT);
+  Texture texture1("container");
+  Texture texture2("AwesomeFace", true);
+  texture1.Load(root + container_tex_src, GL_RGB, GL_REPEAT);
+  texture2.Load(root + face_tex_src, GL_RGBA, GL_REPEAT);
 
   unsigned int indices[] = {
         0, 1, 2, // first triangle
         3, 0, 2  // second triangle
   };
+
+  auto& lightShader = _shaders[2];
+  auto& lightSourceCube = _shaders[3];
 
   // Set buffers
   unsigned int VAOs[2];
@@ -234,18 +103,22 @@ int Engine::Main()
   // 1. bind Vertex Array Object
   glBindVertexArray(VAOs[0]);
   // 2. copy our vertices array in a buffer for OpenGL to use
-  glBindBuffer(GL_ARRAY_BUFFER, VBOs[0]);
-  glBufferData(GL_ARRAY_BUFFER, _vertices[4].size() * sizeof(float), _vertices[4].data(), GL_STATIC_DRAW);
 
-  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO[0]);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+  auto& cubeLsource = _vertices[4];
+  auto& cubeOb = _vertices[5];
+
+  glBindBuffer(GL_ARRAY_BUFFER, VBOs[0]);
+  glBufferData(GL_ARRAY_BUFFER, cubeOb.size() * sizeof(float), cubeOb.data(), GL_STATIC_DRAW);
+
+  /*glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO[0]);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);*/
 
   // 3. then set our vertex attributes pointers
   //glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
   glEnableVertexAttribArray(0);
 
-  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
   //glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
   glEnableVertexAttribArray(1);
   /*glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 *sizeof(float)));
@@ -261,30 +134,21 @@ int Engine::Main()
   // remember: do NOT unbind the EBO while a VAO is active as the bound element buffer object IS stored in the VAO; keep the EBO bound.
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
-  ////------------- bind vertex array object for awesomoeface
-  //glBindVertexArray(VAOs[1]);
+  //------------- bind vertex array object for 'light cube'
+  glBindVertexArray(VAOs[1]);
 
-  //glBindBuffer(GL_ARRAY_BUFFER, VBOs[1]);
-  //glBufferData(GL_ARRAY_BUFFER, _vertices[1].size() * sizeof(float), _vertices[1].data(), GL_STATIC_DRAW);
+  glBindBuffer(GL_ARRAY_BUFFER, VBOs[1]);
+  glBufferData(GL_ARRAY_BUFFER, cubeLsource.size() * sizeof(float), cubeLsource.data(), GL_STATIC_DRAW);
 
-  //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO[1]);
-  //glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+  glEnableVertexAttribArray(0);
+  /*glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+  glEnableVertexAttribArray(1);*/
 
-  //glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-  //glEnableVertexAttribArray(0);
-  //glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
-  //glEnableVertexAttribArray(1);
-  //glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
-  //glEnableVertexAttribArray(2);
+  // note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-  //// note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
-  //glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-  //// You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
-  //// VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
-  //glBindVertexArray(0);
-  //// remember: do NOT unbind the EBO while a VAO is active as the bound element buffer object IS stored in the VAO; keep the EBO bound.
-  //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+  glBindVertexArray(0);
 
   //-------------------------------
 
@@ -292,11 +156,7 @@ int Engine::Main()
   //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
   //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-  _shaders[0]->Use();
-  _shaders[0]->SetInt("texture1", 0);
-  _shaders[0]->SetInt("texture2", 1);
-
-  glm::vec3 cubePositions[] = {
+  /*glm::vec3 cubePositions[] = {
     glm::vec3(0.0f,  0.0f,  0.0f),
     glm::vec3(2.0f,  5.0f, -15.0f),
     glm::vec3(-1.5f, -2.2f, -2.5f),
@@ -307,8 +167,27 @@ int Engine::Main()
     glm::vec3(1.5f,  2.0f, -2.5f),
     glm::vec3(1.5f,  0.2f, -1.5f),
     glm::vec3(-1.3f,  1.0f, -1.5f)
+  };*/
+
+  glm::vec3 cubePositions[] = {
+    glm::vec3(2.0f,  0.0f, -5.0f),
+    glm::vec3(-3.0f, 2.0f, 10.0f)
   };
 
+  //glm::vec3 cubePositions[] = {
+  //  glm::vec3(0.0f,  0.0f, 0.0f),
+  //  glm::vec3(1.2f, 1.0f, 2.0f)
+  //};
+
+  auto& lightPos = cubePositions[1];
+
+  _shaders[0]->Use();
+  _shaders[0]->SetInt("texture1", 0);
+  _shaders[0]->SetInt("texture2", 1);
+
+  std::vector<Shader*> activeShaders = {lightShader.get(), lightSourceCube.get()};// _shaders[0].get()};
+
+  // this enables Z-buffer so that faces overlap correctly when projected to the screen
   glEnable(GL_DEPTH_TEST);
   // Main loop
   while (!glfwWindowShouldClose((GLFWwindow*)_window))
@@ -317,7 +196,8 @@ int Engine::Main()
     processInput();
 
     // rendering
-    glClearColor(0.1f, 0.15f, 0.3f, 0.75f);
+    //glClearColor(0.1f, 0.15f, 0.3f, 0.75f);
+    glClearColor(0.01f, 0.01f, 0.01f, 0.75f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     //glClear(GL_COLOR_BUFFER_BIT);
 
@@ -330,39 +210,46 @@ int Engine::Main()
 
     float time = (float)glfwGetTime();
     // 4. draw the object
-    _shaders[0]->Use();
-    _shaders[0]->SetFloat("ratio", _ratio / 100.0f);
 
     glm::mat4 model = glm::mat4(1.0f);
     model = glm::rotate(model, time * glm::radians(50.0f), glm::vec3(0.5f, 1.0f, 0.0f));
 
     // note that we're translating the scene in the reverse direction of where we want to move
     glm::mat4 view = glm::mat4(1.0f);
-    view = myLookAt(_camera);
-    //view = glm::lookAt(_camera._pos, _camera._pos + _camera._front, _camera._up);
+    view = _camera.GetViewMatrix();
 
     glm::mat4 projection;
     projection = glm::perspective(glm::radians(_camera._fov), float(_width) / float(_height), 0.1f, 100.0f);
+    //projection = glm::ortho(-(float)_width / 256, (float)_width / 256, -(float)_height / 256, (float)_height / 256, -100.1f, 100.0f);
 
-    _shaders[0]->SetMat4("view", view);
-    _shaders[0]->SetMat4("projection", projection);
+    lightShader->Use();
+    lightShader->SetVec3("objectColor", 1.0f, 0.5f, 0.31f);
+    lightShader->SetVec3("lightColor", 1.0f, 1.0f, 1.0f);
+    lightShader->SetVec3("lightPos", lightPos);
+    lightShader->SetVec3("viewPos", _camera._pos);
 
-    glBindVertexArray(VAOs[0]);
-    //glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-    //glDrawArrays(GL_TRIANGLES, 0, 36);
-    //glDrawArrays(GL_TRIANGLES, 0, 6);
+    _shaders[0]->Use();
+    _shaders[0]->SetFloat("ratio", _ratio / 100.0f);
 
-    for (unsigned int i = 0; i < 10; i++)
+    for (unsigned int i = 0; i < 2; i++)
     {
+      auto& activeShader = activeShaders[i];
+      activeShader->Use();
+
+      activeShader->SetMat4("view", view);
+      activeShader->SetMat4("projection", projection);
+
       glm::mat4 model = glm::mat4(1.0f);
       model = glm::translate(model, cubePositions[i]);
+      //float angle = 0;// 20.0f * (i + 1);
       float angle = 20.0f * (i + 1);
       if (i % 3 == 0)
         angle = time * angle;
 
       model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
-      _shaders[0]->SetMat4("model", model);
+      activeShader->SetMat4("model", model);
 
+      glBindVertexArray(VAOs[i]);
       glDrawArrays(GL_TRIANGLES, 0, 36);
     }
 
@@ -436,12 +323,16 @@ void Engine::CreateShaders()
 
   std::unique_ptr<Shader> shader1(new Shader((root + "VertexShader.glsl").c_str(), (root + "FragmentShader.glsl").c_str()));
   std::unique_ptr<Shader> shader2(new Shader((root + "VertexShader.glsl").c_str(), (root + "FragmentShader2.glsl").c_str()));
+  std::unique_ptr<Shader> shaderL(new Shader((root + "LightingCubeV.glsl").c_str(), (root + "LightingCubeF.glsl").c_str()));
+  std::unique_ptr<Shader> shaderLs(new Shader((root + "LightingCubeV.glsl").c_str(), (root + "LightSourceF.glsl").c_str()));
 
   /*std::unique_ptr<Shader> shader1 = std::make_unique<Shader>((root + "VertexShader.glsl").c_str(), (root + "FragmentShader.glsl").c_str());
   std::unique_ptr<Shader> shader2 = std::make_unique<Shader>((root + "VertexShader.glsl").c_str(), (root + "FragmentShader2.glsl").c_str());*/
 
   _shaders.push_back(std::move(shader1));
   _shaders.push_back(std::move(shader2));
+  _shaders.push_back(std::move(shaderL));
+  _shaders.push_back(std::move(shaderLs));
 }
 
 void Engine::InitVertices()
@@ -523,11 +414,56 @@ void Engine::InitVertices()
     -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
   };
 
+  std::vector<float> baseCubeVerticesWnormal = {
+    -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+     0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+     0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+     0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+    -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+    -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+
+    -0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+     0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+     0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+     0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+    -0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+    -0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+
+    -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+    -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+    -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+    -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+    -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+    -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+
+     0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+     0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+     0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+     0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+     0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+     0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+
+    -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+     0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+     0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+     0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+    -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+    -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+
+    -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
+     0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
+     0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+     0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+    -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+    -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f
+  };
+
   _vertices.push_back(verticesa);
   _vertices.push_back(verticesb);
   _vertices.push_back(vertices1);
   _vertices.push_back(vertices2);
   _vertices.push_back(baseCubeVertices);
+  _vertices.push_back(baseCubeVerticesWnormal);
 }
 
 NULLENGINE_API void* CreateEngine()

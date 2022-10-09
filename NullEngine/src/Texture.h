@@ -7,9 +7,9 @@ namespace NullEngine
 class Texture
 {
 public:
-  Texture(std::string& name, bool flip = false) : _name(name), _flip(flip) {}
+  Texture(const std::string& name, bool flip = false) : _name(name), _flip(flip) {}
 
-  bool Load(std::string& path, int mode, int wrapMode);
+  bool Load(const std::string& path, int mode, int wrapMode);
   void Use();
 
 private:

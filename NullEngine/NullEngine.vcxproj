@@ -167,6 +167,7 @@
     <ClInclude Include="src\Camera.h" />
     <ClInclude Include="src\Engine.h" />
     <ClInclude Include="src\IEngine.h" />
+    <ClInclude Include="src\ObjectVertices.h" />
     <ClInclude Include="src\Shader.h" />
     <ClInclude Include="src\Texture.h" />
   </ItemGroup>
@@ -179,8 +180,11 @@
     <ClCompile Include="src\Texture.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="src\LightSourceF.glsl" />
+    <None Include="src\LightingCubeF.glsl" />
     <None Include="src\FragmentShader.glsl" />
     <None Include="src\FragmentShader2.glsl" />
+    <None Include="src\LightingCubeV.glsl" />
     <None Include="src\VertexShader.glsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

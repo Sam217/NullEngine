@@ -2,6 +2,7 @@
 
 #include <string>
 #include <vector>
+#include <memory>
 #include <glm/glm.hpp>
 #include "IEngine.h"
 #include "Shader.h"
@@ -13,15 +14,13 @@ namespace NullEngine {
 
 	class Engine : IEngine
 	{
-	public:
+		friend class Camera;
 
+	public:
 		static Engine* _engineContext;
 
-		static constexpr float FOVmax = 125.0f;
-		static constexpr float FOVmin = 1.0f;
-
 		//! Ctor
-		Engine() = default;
+		Engine() { _camera = Camera(_width / 2.0f, _height / 2.0f); };
 	private:
 		//! Window
 		void *_window = nullptr;
