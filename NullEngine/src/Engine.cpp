@@ -198,7 +198,7 @@ int Engine::Main()
   // this enables Z-buffer so that faces overlap correctly when projected to the screen
   glEnable(GL_DEPTH_TEST);
 
-  float time;
+  float time = 0.0f, timeLast = 0.0f, deltap = 0.0f;
   // Main loop
   while (!glfwWindowShouldClose((GLFWwindow*)_window))
   {
@@ -219,7 +219,13 @@ int Engine::Main()
     texture2.Use();
 
     if (!_pause)
-      time = (float)glfwGetTime();
+    {
+      time = (float)glfwGetTime() - deltap;
+    }
+    else
+    {
+      deltap = (float)glfwGetTime() - time;
+    }
     // 4. draw the object
 
     glm::mat4 model = glm::mat4(1.0f);
