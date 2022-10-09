@@ -242,6 +242,8 @@ int Engine::Main()
     lightShader->Use();
     lightShader->SetVec3("objectColor", 1.0f, 0.5f, 0.31f);
     lightShader->SetVec3("lightColor", 1.0f, 1.0f, 1.0f);
+    /*lightPos.x = 1.0f + sin(glfwGetTime()) * 2.0f;
+    lightPos.y = sin(glfwGetTime() / 2.0f) * 1.0f;*/
     glm::vec4 lightPosView = view * glm::vec4(lightPos, 1.0f);
     lightShader->SetVec3("lightPos", glm::vec3(lightPosView));
     //lightShader->SetVec3("lightPos", lightPos);
