@@ -242,8 +242,11 @@ int Engine::Main()
     lightShader->Use();
     lightShader->SetVec3("objectColor", 1.0f, 0.5f, 0.31f);
     lightShader->SetVec3("lightColor", 1.0f, 1.0f, 1.0f);
-    lightShader->SetVec3("lightPos", lightPos);
-    lightShader->SetVec3("viewPos", _camera._pos);
+    glm::vec4 lightPosView = view * glm::vec4(lightPos, 1.0f);
+    lightShader->SetVec3("lightPos", glm::vec3(lightPosView));
+    //lightShader->SetVec3("lightPos", lightPos);
+    glm::vec4 viewview = view * glm::vec4(_camera._pos, 1.0f);
+    lightShader->SetVec3("viewPos", glm::vec3(viewview));
 
     /*_shaders[0]->Use();
     _shaders[0]->SetFloat("ratio", _ratio / 100.0f);*/
@@ -251,7 +254,8 @@ int Engine::Main()
 
     float posTime = time / 3.0f;
     glm::vec3& newLightPos = lightPos = cubePositions[0] + glm::vec3(10.0f * cos(posTime) / 2, 10.0f * cos(posTime)/3, 10.0f * sin(posTime));
-    lightShader->SetVec3("lightPos", newLightPos);
+    lightShader->SetVec3("lightPos", glm::vec3(view * glm::vec4(newLightPos, 1.0f)));
+    //lightShader->SetVec3("lightPos", newLightPos);
 
     for (unsigned int i = 0; i < 2; i++)
     {
