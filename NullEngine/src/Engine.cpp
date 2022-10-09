@@ -40,6 +40,7 @@ void Engine::processInput()
 {
   _engineContext = this;
   static float lastFrame = (float)glfwGetTime();
+  static float lastPause = 0.0f;
 
   float currentFrame = (float)glfwGetTime();
   float deltaTime = currentFrame - lastFrame;
@@ -52,9 +53,16 @@ void Engine::processInput()
   {
     ++_ratio;
   }
+
   if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_DOWN) == GLFW_PRESS && _ratio > 0)
   {
     --_ratio;
+  }
+
+  if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_P) == GLFW_PRESS && currentFrame - lastPause > 0.2f)
+  {
+    _pause = !_pause;
+    lastPause = currentFrame;
   }
 
   // camera
@@ -189,6 +197,8 @@ int Engine::Main()
 
   // this enables Z-buffer so that faces overlap correctly when projected to the screen
   glEnable(GL_DEPTH_TEST);
+
+  float time;
   // Main loop
   while (!glfwWindowShouldClose((GLFWwindow*)_window))
   {
@@ -208,7 +218,8 @@ int Engine::Main()
     glActiveTexture(GL_TEXTURE1);
     texture2.Use();
 
-    float time = (float)glfwGetTime();
+    if (!_pause)
+      time = (float)glfwGetTime();
     // 4. draw the object
 
     glm::mat4 model = glm::mat4(1.0f);
@@ -228,8 +239,13 @@ int Engine::Main()
     lightShader->SetVec3("lightPos", lightPos);
     lightShader->SetVec3("viewPos", _camera._pos);
 
-    _shaders[0]->Use();
-    _shaders[0]->SetFloat("ratio", _ratio / 100.0f);
+    /*_shaders[0]->Use();
+    _shaders[0]->SetFloat("ratio", _ratio / 100.0f);*/
+    lightShader->SetFloat("specularIntensity", _ratio / 100.0f);
+
+    float posTime = time / 3.0f;
+    glm::vec3& newLightPos = lightPos = cubePositions[0] + glm::vec3(10.0f * cos(posTime) / 2, 10.0f * cos(posTime)/3, 10.0f * sin(posTime));
+    lightShader->SetVec3("lightPos", newLightPos);
 
     for (unsigned int i = 0; i < 2; i++)
     {
@@ -242,11 +258,14 @@ int Engine::Main()
       glm::mat4 model = glm::mat4(1.0f);
       model = glm::translate(model, cubePositions[i]);
       //float angle = 0;// 20.0f * (i + 1);
-      float angle = 20.0f * (i + 1);
-      if (i % 3 == 0)
-        angle = time * angle;
+      float angle = -20.0f;// * (i + 1);
+      float rotTime = time / 5.0f;
+      if (i == 1)
+        angle *= 15.5f;
 
-      model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
+      angle = rotTime * (angle + i);
+
+      model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f * sin(time), 0.5f));
       activeShader->SetMat4("model", model);
 
       glBindVertexArray(VAOs[i]);
