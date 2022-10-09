@@ -95,7 +95,7 @@ int Engine::Main()
         3, 0, 2  // second triangle
   };
 
-  auto& lightShader = _shaders[2];
+  auto& lightShader = _shaders[4];
   auto& lightSourceCube = _shaders[3];
 
   // Set buffers
@@ -350,13 +350,14 @@ void Engine::CreateShaders()
   GetCurrentDirectoryA(MAX_PATH, rawPathName);
 
   //std::string root = rawPathName + std::string(R"(..\NullEngine\src\)");
-  std::string root = R"(..\NullEngine\src\)";
+  std::string root = R"(..\NullEngine\src\Shaders\)";
 
   std::unique_ptr<Shader> shader1(new Shader((root + "VertexShader.glsl").c_str(), (root + "FragmentShader.glsl").c_str()));
   std::unique_ptr<Shader> shader2(new Shader((root + "VertexShader.glsl").c_str(), (root + "FragmentShader2.glsl").c_str()));
   std::unique_ptr<Shader> shaderL(new Shader((root + "LightingCubeV.glsl").c_str(), (root + "LightingCubeF.glsl").c_str()));
   std::unique_ptr<Shader> shaderLs(new Shader((root + "LightingCubeV.glsl").c_str(), (root + "LightSourceF.glsl").c_str()));
 
+  std::unique_ptr<Shader> shaderGouraud(new Shader((root + "LightingCubeV_Gouraud.glsl").c_str(), (root + "LightingCubeF_Gouraud.glsl").c_str()));
   /*std::unique_ptr<Shader> shader1 = std::make_unique<Shader>((root + "VertexShader.glsl").c_str(), (root + "FragmentShader.glsl").c_str());
   std::unique_ptr<Shader> shader2 = std::make_unique<Shader>((root + "VertexShader.glsl").c_str(), (root + "FragmentShader2.glsl").c_str());*/
 
@@ -364,6 +365,7 @@ void Engine::CreateShaders()
   _shaders.push_back(std::move(shader2));
   _shaders.push_back(std::move(shaderL));
   _shaders.push_back(std::move(shaderLs));
+  _shaders.push_back(std::move(shaderGouraud));
 }
 
 void Engine::InitVertices()

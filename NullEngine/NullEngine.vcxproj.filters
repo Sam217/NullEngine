@@ -58,11 +58,13 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="src\FragmentShader.glsl" />
-    <None Include="src\VertexShader.glsl" />
-    <None Include="src\FragmentShader2.glsl" />
-    <None Include="src\LightingCubeV.glsl" />
-    <None Include="src\LightingCubeF.glsl" />
-    <None Include="src\LightSourceF.glsl" />
+    <None Include="src\Shaders\FragmentShader.glsl" />
+    <None Include="src\Shaders\VertexShader.glsl" />
+    <None Include="src\Shaders\FragmentShader2.glsl" />
+    <None Include="src\Shaders\LightingCubeV.glsl" />
+    <None Include="src\Shaders\LightingCubeF.glsl" />
+    <None Include="src\Shaders\LightSourceF.glsl" />
+    <None Include="src\Shaders\LightingCubeV_Gouraud.glsl" />
+    <None Include="src\Shaders\LightingCubeF_Gouraud.glsl" />
   </ItemGroup>
 </Project>
