@@ -95,9 +95,6 @@ int Engine::Main()
         3, 0, 2  // second triangle
   };
 
-  auto& lightShader = _shaders[4];
-  auto& lightSourceCube = _shaders[3];
-
   // Set buffers
   unsigned int VAOs[2];
   glGenVertexArrays(2, VAOs);
@@ -193,6 +190,9 @@ int Engine::Main()
   _shaders[0]->SetInt("texture1", 0);
   _shaders[0]->SetInt("texture2", 1);
 
+  auto& lightShader = _shaders[2];
+  auto& lightSourceCube = _shaders[3];
+
   std::vector<Shader*> activeShaders = {lightShader.get(), lightSourceCube.get()};// _shaders[0].get()};
 
   // this enables Z-buffer so that faces overlap correctly when projected to the screen
@@ -240,7 +240,7 @@ int Engine::Main()
     //projection = glm::ortho(-(float)_width / 256, (float)_width / 256, -(float)_height / 256, (float)_height / 256, -100.1f, 100.0f);
 
     lightShader->Use();
-    lightShader->SetVec3("objectColor", 1.0f, 0.5f, 0.31f);
+    lightShader->SetVec3("objectColor", .5f, 0.5f, 0.61f);
     lightShader->SetVec3("lightColor", 1.0f, 1.0f, 1.0f);
     /*lightPos.x = 1.0f + sin(glfwGetTime()) * 2.0f;
     lightPos.y = sin(glfwGetTime() / 2.0f) * 1.0f;*/
@@ -274,6 +274,8 @@ int Engine::Main()
       float rotTime = time / 5.0f;
       if (i == 1)
         angle *= 15.5f;
+      else
+        model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f) * 3.0f);
 
       angle = rotTime * (angle + i);
 
