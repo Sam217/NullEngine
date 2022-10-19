@@ -28,23 +28,18 @@ namespace NullEngine {
 		Camera _camera;
 
 		//! input for GLSL mix function
-		int _ratio = 20;
+		int _ratio = 100;
 		bool _pause = false;
 		//
 		int _width = 1600;
 		// 
 		int _height = 900;
 
-		// camera
-		float _xoffset = 0;
-		float _yoffset = 0;
-		float _zoffset = 0;
 		//! list of shaders
 		std::vector<std::unique_ptr<Shader>> _shaders;
 		//!
 		std::vector<std::vector<float>> _vertices;
-		//! mouse sensitivity setting
-		float _msensitivity = 0.025f;
+
 	public:
 		//! Dtor
 		virtual ~Engine() override = default;

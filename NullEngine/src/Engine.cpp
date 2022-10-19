@@ -21,6 +21,14 @@ namespace NullEngine
 
 Engine* Engine::_engineContext = nullptr;
 
+struct Material
+{
+  glm::vec3 ambient;
+  glm::vec3 diffuse;
+  glm::vec3 specular;
+  float shininess;
+};
+
 void Engine::Framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
   glViewport(0, 0, width, height);
@@ -49,14 +57,19 @@ void Engine::processInput()
   if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
     glfwSetWindowShouldClose((GLFWwindow*)_window, true);
 
-  if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_UP) == GLFW_PRESS && _ratio < 100)
+  if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_UP) == GLFW_PRESS)
   {
     ++_ratio;
   }
 
-  if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_DOWN) == GLFW_PRESS && _ratio > 0)
+  if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_DOWN) == GLFW_PRESS)
   {
     --_ratio;
+  }
+
+  if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_5) == GLFW_PRESS)
+  {
+    _ratio = 100;
   }
 
   if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_P) == GLFW_PRESS && currentFrame - lastPause > 0.2f)
@@ -239,9 +252,114 @@ int Engine::Main()
     projection = glm::perspective(glm::radians(_camera._fov), float(_width) / float(_height), 0.1f, 100.0f);
     //projection = glm::ortho(-(float)_width / 256, (float)_width / 256, -(float)_height / 256, (float)_height / 256, -100.1f, 100.0f);
 
+    glm::vec3 lightColor;
+    lightColor.x = sin(glfwGetTime() * 2.0f);
+    lightColor.y = sin(glfwGetTime() * 0.7f);
+    lightColor.z = sin(glfwGetTime() * 1.3f);
+
+    glm::vec3 diffuseColor = lightColor * glm::vec3(0.5f);
+    glm::vec3 ambientColor = diffuseColor * glm::vec3(0.1f);
+
     lightShader->Use();
-    lightShader->SetVec3("objectColor", .5f, 0.5f, 0.61f);
-    lightShader->SetVec3("lightColor", 1.0f, 1.0f, 1.0f);
+    //lightShader->SetVec3("light.ambient", glm::vec3(0.2));
+    //lightShader->SetVec3("light.diffuse", 0.5f, 0.5f, 0.5f); // darken diffuse light a bit
+    /*lightShader->SetVec3("light.ambient", ambientColor);
+    lightShader->SetVec3("light.diffuse", diffuseColor);*/
+
+    lightShader->SetVec3("light.ambient", glm::vec3(0.2));
+    lightShader->SetVec3("light.diffuse", glm::vec3(1.0));
+    lightShader->SetVec3("light.specular", 1.0f, 1.0f, 1.0f);
+    //lightShader->SetVec3("light.specular", lightColor);
+
+    lightSourceCube->Use();
+    //lightSourceCube->SetVec3("lightColor", lightColor);
+    lightSourceCube->SetVec3("lightColor", glm::vec3(1.0f));
+    lightShader->Use();
+    
+    // Materials
+    Material emerald = {
+                        glm::vec3(0.0215f, 0.1745, 0.0215),
+                        glm::vec3(0.07568, 0.61424, 0.07568),
+                        glm::vec3(0.633, 0.727811, 0.633),
+                        0.6 * 128
+    };
+    Material jade = {
+                        glm::vec3(0.135, 0.2225,	0.1575),
+                        glm::vec3(0.54,	0.89,	0.63),
+                        glm::vec3(0.316228,	0.316228,	0.316228),
+                        0.1 * 128
+    };
+    Material obsidian = {
+                        glm::vec3(0.05375,	0.05,	0.06625),
+                        glm::vec3(0.18275,	0.17,	0.22525),
+                        glm::vec3(0.332741,	0.328634,	0.346435),
+                        0.3 * 128
+    };
+    Material pearl = {
+                        glm::vec3(0.25,	0.20725, 0.20725),
+                        glm::vec3(1,	0.829,	0.829),
+                        glm::vec3(0.296648,	0.296648,	0.296648),
+                        0.088 * 128
+    };
+    Material copper = {
+                        glm::vec3(0.19125,	0.0735,	0.0225),
+                        glm::vec3(0.7038,	0.27048,	0.0828),
+                        glm::vec3(0.256777,	0.137622,	0.086014),
+                        0.1 * 128
+    };
+    Material gold = {
+                        glm::vec3(0.24725, 0.1995, 0.0745),
+                        glm::vec3(0.75164, 0.60648, 0.22648),
+                        glm::vec3(0.628281,	0.555802,	0.366065),
+                        0.4 * 128
+    };
+    Material chrome = {
+                        glm::vec3(0.25,	0.25,	0.25),
+                        glm::vec3(0.4, 0.4,	0.4),
+                        glm::vec3(0.774597,	0.774597,	0.774597),
+                        0.6 * 128
+    };
+    Material brass = {
+                        glm::vec3(0.329412,	0.223529,	0.027451),
+                        glm::vec3(0.780392,	0.568627,	0.113725),
+                        glm::vec3(0.992157,	0.941176,	0.807843),
+                        0.21794872 * 128
+    };
+    Material bronze = {
+                        glm::vec3(0.2125,	0.1275,	0.054),
+                        glm::vec3(0.714,	0.4284,	0.18144),
+                        glm::vec3(0.393548,	0.271906,	0.166721),
+                        0.2 * 128
+    };
+    Material cyanPlastic = {
+                        glm::vec3(0.0,	0.1,	0.06),
+                        glm::vec3(0.0,	0.50980392,	0.50980392),
+                        glm::vec3(0.50196078,	0.50196078,	0.50196078),
+                        0.25 * 128
+    };
+
+    std::vector<Material> _materials = {
+      emerald,
+      jade,
+      obsidian,
+      pearl,
+      copper,
+      gold,
+      chrome,
+      brass,
+      bronze,
+      cyanPlastic
+    };
+
+    lightShader->SetVec3("material.ambient", brass.ambient);
+    lightShader->SetVec3("material.diffuse", brass.diffuse);
+    lightShader->SetVec3("material.specular", brass.specular);
+    lightShader->SetFloat("material.shininess", brass.shininess);
+
+    /*lightShader->SetVec3("material.ambient", 1.0f, 0.5f, 0.31f);
+    lightShader->SetVec3("material.diffuse", 1.0f, 0.5f, 0.31f);
+    lightShader->SetVec3("material.specular", 0.5f, 0.5f, 0.5f);
+    lightShader->SetFloat("material.shininess", 32.0f);*/
     /*lightPos.x = 1.0f + sin(glfwGetTime()) * 2.0f;
     lightPos.y = sin(glfwGetTime() / 2.0f) * 1.0f;*/
     glm::vec4 lightPosView = view * glm::vec4(lightPos, 1.0f);
@@ -309,7 +427,7 @@ void Engine::InitGLFW()
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
   // Create window
-  _window = glfwCreateWindow(_width, _height, "LearnOpenGL", NULL, NULL);
+  _window = glfwCreateWindow(_width, _height, "OpenGraphicsLearning", NULL, NULL);
   if (_window == NULL)
   {
     std::cout << "Failed to create GLFW window" << std::endl;
