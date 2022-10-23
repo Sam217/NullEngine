@@ -9,7 +9,7 @@ class Texture
 public:
   Texture(const std::string& name, bool flip = false) : _name(name), _flip(flip) {}
 
-  bool Load(const std::string& path, int mode, int wrapMode);
+  bool Load(const std::string& path, int wrapMode);
   void Use();
 
 private:

@@ -6,12 +6,20 @@
 namespace NullEngine
 {
 
-bool Texture::Load(const std::string& path, int mode, int wrapMode)
+bool Texture::Load(const std::string& path, int wrapMode)
 {
   int nrChannels;
   stbi_set_flip_vertically_on_load(_flip);
   unsigned char* data = stbi_load((path).c_str(), &_width, &_height, &nrChannels, 0);
   stbi_set_flip_vertically_on_load(false);
+
+  GLenum format = 0;
+  if (nrChannels == 1)
+    format = GL_RED;
+  else if (nrChannels == 3)
+    format = GL_RGB;
+  else if (nrChannels == 4)
+    format = GL_RGBA;
 
   glGenTextures(1, &_glId);
   glBindTexture(GL_TEXTURE_2D, _glId);
@@ -27,7 +35,7 @@ bool Texture::Load(const std::string& path, int mode, int wrapMode)
 
   if (data)
   {
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, _width, _height, 0, mode, GL_UNSIGNED_BYTE, data);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, _width, _height, 0, format, GL_UNSIGNED_BYTE, data);
     glGenerateMipmap(GL_TEXTURE_2D);
 
     glBindTexture(GL_TEXTURE_2D, 0);

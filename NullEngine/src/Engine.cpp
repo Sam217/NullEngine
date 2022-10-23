@@ -120,8 +120,13 @@ int Engine::Main()
 
   Texture texture1("container");
   Texture texture2("AwesomeFace", true);
-  texture1.Load(root + container_tex_src, GL_RGB, GL_REPEAT);
-  texture2.Load(root + face_tex_src, GL_RGBA, GL_REPEAT);
+  texture1.Load(root + container_tex_src, GL_REPEAT);
+  texture2.Load(root + face_tex_src, GL_REPEAT);
+
+  Texture containerDiffuseMap("containerWood");
+  Texture containerSpecularMap("containerSteelBorder");
+  containerDiffuseMap.Load(root + "container2.png", GL_REPEAT);
+  containerSpecularMap.Load(root + "container2_specular.png", GL_REPEAT);
 
   unsigned int indices[] = {
         0, 1, 2, // first triangle
@@ -143,7 +148,7 @@ int Engine::Main()
   // 2. copy our vertices array in a buffer for OpenGL to use
 
   auto& cubeLsource = _vertices[4];
-  auto& cubeOb = _vertices[5];
+  auto& cubeOb = _vertices[6];
 
   glBindBuffer(GL_ARRAY_BUFFER, VBOs[0]);
   glBufferData(GL_ARRAY_BUFFER, cubeOb.size() * sizeof(float), cubeOb.data(), GL_STATIC_DRAW);
@@ -152,15 +157,13 @@ int Engine::Main()
   glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);*/
 
   // 3. then set our vertex attributes pointers
-  //glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
   glEnableVertexAttribArray(0);
 
-  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
-  //glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+  glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
   glEnableVertexAttribArray(1);
-  /*glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 *sizeof(float)));
-  glEnableVertexAttribArray(2);*/
+  glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 *sizeof(float)));
+  glEnableVertexAttribArray(2);
 
   // note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
   glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -332,13 +335,6 @@ int Engine::Main()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     //glClear(GL_COLOR_BUFFER_BIT);
 
-    //glBindTexture(GL_TEXTURE_2D, texture);
-    glActiveTexture(GL_TEXTURE0);
-    texture1.Use();
-
-    glActiveTexture(GL_TEXTURE1);
-    texture2.Use();
-
     if (!_pause)
     {
       time = (float)glfwGetTime() - deltap;
@@ -358,21 +354,29 @@ int Engine::Main()
 
     // set lighting properties
     glm::vec3 lightColor;
-    lightColor.x = sin(glfwGetTime() * 2.0f);
-    lightColor.y = sin(glfwGetTime() * 0.7f);
-    lightColor.z = sin(glfwGetTime() * 1.3f);
+    lightColor.x = sin((float)glfwGetTime() * 2.0f);
+    lightColor.y = sin((float)glfwGetTime() * 0.7f);
+    lightColor.z = sin((float)glfwGetTime() * 1.3f);
 
     glm::vec3 diffuseColor = lightColor * glm::vec3(0.5f);
     glm::vec3 ambientColor = diffuseColor * glm::vec3(0.1f);
 
     lightShader->Use();
+    lightShader->SetInt("material.diffuse", 0);
+
+    glActiveTexture(GL_TEXTURE0);
+    containerDiffuseMap.Use();
+
+    lightShader->SetInt("material.specular", 1);
+    glActiveTexture(GL_TEXTURE1);
+    containerSpecularMap.Use();
     //lightShader->SetVec3("light.ambient", glm::vec3(0.2));
     //lightShader->SetVec3("light.diffuse", 0.5f, 0.5f, 0.5f); // darken diffuse light a bit
     /*lightShader->SetVec3("light.ambient", ambientColor);
     lightShader->SetVec3("light.diffuse", diffuseColor);*/
 
-    lightShader->SetVec3("light.ambient", glm::vec3(0.2)* (float)_lightIntensity / 100.0f);
-    lightShader->SetVec3("light.diffuse", glm::vec3(1.0)* (float)_lightIntensity / 100.0f);
+    lightShader->SetVec3("light.ambient", glm::vec3(0.2f)* (float)_lightIntensity / 100.0f);
+    lightShader->SetVec3("light.diffuse", glm::vec3(1.0f)* (float)_lightIntensity / 100.0f);
     lightShader->SetVec3("light.specular", glm::vec3(1.0f, 1.0f, 1.0f)* (float)_lightIntensity / 100.0f);
     //lightShader->SetVec3("light.specular", lightColor);
 
@@ -407,15 +411,17 @@ int Engine::Main()
     /*_shaders[0]->Use();
     _shaders[0]->SetFloat("ratio", _ratio / 100.0f);*/
     lightShader->SetFloat("specularIntensity", _ratio / 100.0f);
-    
 
     for (int i = 0; i < _materials.size(); ++i)
     {
       auto& material = _materials[i];
-      lightShader->SetVec3("material.ambient", material.ambient);
-      lightShader->SetVec3("material.diffuse", material.diffuse);
-      lightShader->SetVec3("material.specular", material.specular);
-      lightShader->SetFloat("material.shininess", material.shininess);
+      //lightShader->SetVec3("material.ambient", material.ambient);
+      //lightShader->SetVec3("material.diffuse", material.diffuse);
+      //lightShader->SetVec3("material.specular", material.specular);
+      //lightShader->SetFloat("material.shininess", material.shininess);
+
+      lightShader->SetVec3("material.specular", 0.5f, 0.5f, 0.5f);
+      lightShader->SetFloat("material.shininess", 64.0f);
 
       /*lightShader->SetVec3("material.ambient", 1.0f, 0.5f, 0.31f);
       lightShader->SetVec3("material.diffuse", 1.0f, 0.5f, 0.31f);
@@ -651,12 +657,58 @@ void Engine::InitVertices()
     -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f
   };
 
+  std::vector<float> cubeVertNormalTex = {
+    // positions          // normals           // texture coords
+    -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,
+     0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 0.0f,
+     0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,
+     0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,
+    -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 1.0f,
+    -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,
+
+    -0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   0.0f, 0.0f,
+     0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   1.0f, 0.0f,
+     0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   1.0f, 1.0f,
+     0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   1.0f, 1.0f,
+    -0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   0.0f, 1.0f,
+    -0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   0.0f, 0.0f,
+
+    -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
+    -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 1.0f,
+    -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
+    -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
+    -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 0.0f,
+    -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
+
+     0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
+     0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f,
+     0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
+     0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
+     0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 0.0f,
+     0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
+
+    -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 1.0f,
+     0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 1.0f,
+     0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 0.0f,
+     0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 0.0f,
+    -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 0.0f,
+    -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 1.0f,
+
+    -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f,
+     0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 1.0f,
+     0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,
+     0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,
+    -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 0.0f,
+    -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f
+  };
+
   _vertices.push_back(verticesa);
   _vertices.push_back(verticesb);
   _vertices.push_back(vertices1);
   _vertices.push_back(vertices2);
   _vertices.push_back(baseCubeVertices);
   _vertices.push_back(baseCubeVerticesWnormal);
+  _vertices.push_back(cubeVertNormalTex);
 }
 
 NULLENGINE_API void* CreateEngine()
