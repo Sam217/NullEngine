@@ -29,6 +29,7 @@ namespace NullEngine {
 
 		//! input for GLSL mix function
 		int _ratio = 100;
+		int _lightIntensity = 100;
 		bool _pause = false;
 		//
 		int _width = 1600;

@@ -73,6 +73,25 @@ void Engine::processInput()
     _ratio = 100;
   }
 
+  if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_KP_ADD) == GLFW_PRESS)
+  {
+    ++_lightIntensity;
+  }
+
+  if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_KP_SUBTRACT) == GLFW_PRESS)
+  {
+    --_lightIntensity;
+  }
+
+  if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_L) == GLFW_PRESS && currentFrame - lastPause > 0.2f)
+  {
+    lastPause = currentFrame;
+    if (!_lightIntensity)
+      _lightIntensity = 100;
+    else
+      _lightIntensity = 0;
+  }
+
   if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_P) == GLFW_PRESS && currentFrame - lastPause > 0.2f)
   {
     _pause = !_pause;
@@ -352,14 +371,14 @@ int Engine::Main()
     /*lightShader->SetVec3("light.ambient", ambientColor);
     lightShader->SetVec3("light.diffuse", diffuseColor);*/
 
-    lightShader->SetVec3("light.ambient", glm::vec3(0.2));
-    lightShader->SetVec3("light.diffuse", glm::vec3(1.0));
-    lightShader->SetVec3("light.specular", 1.0f, 1.0f, 1.0f);
+    lightShader->SetVec3("light.ambient", glm::vec3(0.2)* (float)_lightIntensity / 100.0f);
+    lightShader->SetVec3("light.diffuse", glm::vec3(1.0)* (float)_lightIntensity / 100.0f);
+    lightShader->SetVec3("light.specular", glm::vec3(1.0f, 1.0f, 1.0f)* (float)_lightIntensity / 100.0f);
     //lightShader->SetVec3("light.specular", lightColor);
 
     lightSourceCube->Use();
     //lightSourceCube->SetVec3("lightColor", lightColor);
-    lightSourceCube->SetVec3("lightColor", glm::vec3(1.0f));
+    lightSourceCube->SetVec3("lightColor", glm::vec3(1.0f) * (float)_lightIntensity / 100.0f);
 
     // draw light source
     lightSourceCube->Use();
