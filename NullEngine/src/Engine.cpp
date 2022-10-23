@@ -1,5 +1,6 @@
 #include <iostream>
 #include <windows.h>
+#include <random>
 
 #include <glad/glad.h>
 #include <glfw3.h>
@@ -41,7 +42,7 @@ void Engine::Mouse_callback(GLFWwindow* window, double xpos, double ypos)
 
 void Engine::Scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
-  _engineContext->_camera.ProcessMouseScroll(yoffset);
+  _engineContext->_camera.ProcessMouseScroll((float)yoffset);
 }
 
 void Engine::processInput()
@@ -212,6 +213,94 @@ int Engine::Main()
   glEnable(GL_DEPTH_TEST);
 
   float time = 0.0f, timeLast = 0.0f, deltap = 0.0f;
+
+  // Materials
+  Material emerald = {
+                      glm::vec3(0.0215f, 0.1745, 0.0215),
+                      glm::vec3(0.07568, 0.61424, 0.07568),
+                      glm::vec3(0.633, 0.727811, 0.633),
+                      0.6 * 128
+  };
+  Material jade = {
+                      glm::vec3(0.135, 0.2225,	0.1575),
+                      glm::vec3(0.54,	0.89,	0.63),
+                      glm::vec3(0.316228,	0.316228,	0.316228),
+                      0.1 * 128
+  };
+  Material obsidian = {
+                      glm::vec3(0.05375,	0.05,	0.06625),
+                      glm::vec3(0.18275,	0.17,	0.22525),
+                      glm::vec3(0.332741,	0.328634,	0.346435),
+                      0.3 * 128
+  };
+  Material pearl = {
+                      glm::vec3(0.25,	0.20725, 0.20725),
+                      glm::vec3(1,	0.829,	0.829),
+                      glm::vec3(0.296648,	0.296648,	0.296648),
+                      0.088 * 128
+  };
+  Material copper = {
+                      glm::vec3(0.19125,	0.0735,	0.0225),
+                      glm::vec3(0.7038,	0.27048,	0.0828),
+                      glm::vec3(0.256777,	0.137622,	0.086014),
+                      0.1 * 128
+  };
+  Material gold = {
+                      glm::vec3(0.24725, 0.1995, 0.0745),
+                      glm::vec3(0.75164, 0.60648, 0.22648),
+                      glm::vec3(0.628281,	0.555802,	0.366065),
+                      0.4 * 128
+  };
+  Material chrome = {
+                      glm::vec3(0.25,	0.25,	0.25),
+                      glm::vec3(0.4, 0.4,	0.4),
+                      glm::vec3(0.774597,	0.774597,	0.774597),
+                      0.6 * 128
+  };
+  Material brass = {
+                      glm::vec3(0.329412,	0.223529,	0.027451),
+                      glm::vec3(0.780392,	0.568627,	0.113725),
+                      glm::vec3(0.992157,	0.941176,	0.807843),
+                      0.21794872 * 128
+  };
+  Material bronze = {
+                      glm::vec3(0.2125,	0.1275,	0.054),
+                      glm::vec3(0.714,	0.4284,	0.18144),
+                      glm::vec3(0.393548,	0.271906,	0.166721),
+                      0.2 * 128
+  };
+  Material cyanPlastic = {
+                      glm::vec3(0.0,	0.1,	0.06),
+                      glm::vec3(0.0,	0.50980392,	0.50980392),
+                      glm::vec3(0.50196078,	0.50196078,	0.50196078),
+                      0.25 * 128
+  };
+
+  std::vector<Material> _materials = {
+    emerald,
+    jade,
+    obsidian,
+    pearl,
+    copper,
+    gold,
+    chrome,
+    brass,
+    bronze,
+    cyanPlastic
+  };
+
+  // randomize some cube positions
+  std::random_device r;
+  std::mt19937 gen(r());
+  std::uniform_real_distribution<float> uniform_dist(-10.0, 10.0);
+
+  std::vector<glm::vec3> randvecs;
+  for (int i = 0; i < _materials.size(); ++i)
+  {
+    glm::vec3 randvec((float)uniform_dist(gen), (float)uniform_dist(gen), (float)uniform_dist(gen));
+    randvecs.push_back(randvec);
+  }
+
   // Main loop
   while (!glfwWindowShouldClose((GLFWwindow*)_window))
   {
@@ -240,10 +329,6 @@ int Engine::Main()
       deltap = (float)glfwGetTime() - time;
     }
     // 4. draw the object
-
-    glm::mat4 model = glm::mat4(1.0f);
-    model = glm::rotate(model, time * glm::radians(50.0f), glm::vec3(0.5f, 1.0f, 0.0f));
-
     // note that we're translating the scene in the reverse direction of where we want to move
     glm::mat4 view = glm::mat4(1.0f);
     view = _camera.GetViewMatrix();
@@ -252,6 +337,7 @@ int Engine::Main()
     projection = glm::perspective(glm::radians(_camera._fov), float(_width) / float(_height), 0.1f, 100.0f);
     //projection = glm::ortho(-(float)_width / 256, (float)_width / 256, -(float)_height / 256, (float)_height / 256, -100.1f, 100.0f);
 
+    // set lighting properties
     glm::vec3 lightColor;
     lightColor.x = sin(glfwGetTime() * 2.0f);
     lightColor.y = sin(glfwGetTime() * 0.7f);
@@ -274,133 +360,68 @@ int Engine::Main()
     lightSourceCube->Use();
     //lightSourceCube->SetVec3("lightColor", lightColor);
     lightSourceCube->SetVec3("lightColor", glm::vec3(1.0f));
+
+    // draw light source
+    lightSourceCube->Use();
+    lightSourceCube->SetMat4("view", view);
+    lightSourceCube->SetMat4("projection", projection);
+
+    float posTime = time / 3.0f;
+    glm::vec3& newLightPos = lightPos = cubePositions[0] + glm::vec3(10.0f * cos(posTime) / 2, 10.0f * cos(posTime) / 3, 10.0f * sin(posTime));
+
+    glm::mat4 model(1.0f);
+    model = glm::translate(model, lightPos);
+    float angle;
+    float rotTime = time / 5.0f;
+    angle = -20.0f * 15.5f;
+
+    model = glm::rotate(model, glm::radians(rotTime * angle), glm::vec3(1.0f, 0.3f * sin(time), 0.5f));
+    lightSourceCube->SetMat4("model", model);
+
+    glBindVertexArray(VAOs[1]);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+
+    // draw material cube(s)
     lightShader->Use();
-    
-    // Materials
-    Material emerald = {
-                        glm::vec3(0.0215f, 0.1745, 0.0215),
-                        glm::vec3(0.07568, 0.61424, 0.07568),
-                        glm::vec3(0.633, 0.727811, 0.633),
-                        0.6 * 128
-    };
-    Material jade = {
-                        glm::vec3(0.135, 0.2225,	0.1575),
-                        glm::vec3(0.54,	0.89,	0.63),
-                        glm::vec3(0.316228,	0.316228,	0.316228),
-                        0.1 * 128
-    };
-    Material obsidian = {
-                        glm::vec3(0.05375,	0.05,	0.06625),
-                        glm::vec3(0.18275,	0.17,	0.22525),
-                        glm::vec3(0.332741,	0.328634,	0.346435),
-                        0.3 * 128
-    };
-    Material pearl = {
-                        glm::vec3(0.25,	0.20725, 0.20725),
-                        glm::vec3(1,	0.829,	0.829),
-                        glm::vec3(0.296648,	0.296648,	0.296648),
-                        0.088 * 128
-    };
-    Material copper = {
-                        glm::vec3(0.19125,	0.0735,	0.0225),
-                        glm::vec3(0.7038,	0.27048,	0.0828),
-                        glm::vec3(0.256777,	0.137622,	0.086014),
-                        0.1 * 128
-    };
-    Material gold = {
-                        glm::vec3(0.24725, 0.1995, 0.0745),
-                        glm::vec3(0.75164, 0.60648, 0.22648),
-                        glm::vec3(0.628281,	0.555802,	0.366065),
-                        0.4 * 128
-    };
-    Material chrome = {
-                        glm::vec3(0.25,	0.25,	0.25),
-                        glm::vec3(0.4, 0.4,	0.4),
-                        glm::vec3(0.774597,	0.774597,	0.774597),
-                        0.6 * 128
-    };
-    Material brass = {
-                        glm::vec3(0.329412,	0.223529,	0.027451),
-                        glm::vec3(0.780392,	0.568627,	0.113725),
-                        glm::vec3(0.992157,	0.941176,	0.807843),
-                        0.21794872 * 128
-    };
-    Material bronze = {
-                        glm::vec3(0.2125,	0.1275,	0.054),
-                        glm::vec3(0.714,	0.4284,	0.18144),
-                        glm::vec3(0.393548,	0.271906,	0.166721),
-                        0.2 * 128
-    };
-    Material cyanPlastic = {
-                        glm::vec3(0.0,	0.1,	0.06),
-                        glm::vec3(0.0,	0.50980392,	0.50980392),
-                        glm::vec3(0.50196078,	0.50196078,	0.50196078),
-                        0.25 * 128
-    };
-
-    std::vector<Material> _materials = {
-      emerald,
-      jade,
-      obsidian,
-      pearl,
-      copper,
-      gold,
-      chrome,
-      brass,
-      bronze,
-      cyanPlastic
-    };
-
-    lightShader->SetVec3("material.ambient", brass.ambient);
-    lightShader->SetVec3("material.diffuse", brass.diffuse);
-    lightShader->SetVec3("material.specular", brass.specular);
-    lightShader->SetFloat("material.shininess", brass.shininess);
-
-    /*lightShader->SetVec3("material.ambient", 1.0f, 0.5f, 0.31f);
-    lightShader->SetVec3("material.diffuse", 1.0f, 0.5f, 0.31f);
-    lightShader->SetVec3("material.specular", 0.5f, 0.5f, 0.5f);
-    lightShader->SetFloat("material.shininess", 32.0f);*/
-    /*lightPos.x = 1.0f + sin(glfwGetTime()) * 2.0f;
-    lightPos.y = sin(glfwGetTime() / 2.0f) * 1.0f;*/
-    glm::vec4 lightPosView = view * glm::vec4(lightPos, 1.0f);
-    lightShader->SetVec3("lightPos", glm::vec3(lightPosView));
-    //lightShader->SetVec3("lightPos", lightPos);
-    glm::vec4 viewview = view * glm::vec4(_camera._pos, 1.0f);
-    lightShader->SetVec3("viewPos", glm::vec3(viewview));
-
+    lightShader->SetMat4("view", view);
+    lightShader->SetMat4("projection", projection);
     /*_shaders[0]->Use();
     _shaders[0]->SetFloat("ratio", _ratio / 100.0f);*/
     lightShader->SetFloat("specularIntensity", _ratio / 100.0f);
+    
 
-    float posTime = time / 3.0f;
-    glm::vec3& newLightPos = lightPos = cubePositions[0] + glm::vec3(10.0f * cos(posTime) / 2, 10.0f * cos(posTime)/3, 10.0f * sin(posTime));
-    lightShader->SetVec3("lightPos", glm::vec3(view * glm::vec4(newLightPos, 1.0f)));
-    //lightShader->SetVec3("lightPos", newLightPos);
-
-    for (unsigned int i = 0; i < 2; i++)
+    for (int i = 0; i < _materials.size(); ++i)
     {
-      auto& activeShader = activeShaders[i];
-      activeShader->Use();
+      auto& material = _materials[i];
+      lightShader->SetVec3("material.ambient", material.ambient);
+      lightShader->SetVec3("material.diffuse", material.diffuse);
+      lightShader->SetVec3("material.specular", material.specular);
+      lightShader->SetFloat("material.shininess", material.shininess);
 
-      activeShader->SetMat4("view", view);
-      activeShader->SetMat4("projection", projection);
+      /*lightShader->SetVec3("material.ambient", 1.0f, 0.5f, 0.31f);
+      lightShader->SetVec3("material.diffuse", 1.0f, 0.5f, 0.31f);
+      lightShader->SetVec3("material.specular", 0.5f, 0.5f, 0.5f);
+      lightShader->SetFloat("material.shininess", 32.0f);*/
+      /*lightPos.x = 1.0f + sin(glfwGetTime()) * 2.0f;
+      lightPos.y = sin(glfwGetTime() / 2.0f) * 1.0f;*/
+      glm::vec4 lightPosView = view * glm::vec4(lightPos, 1.0f);
+      lightShader->SetVec3("lightPos", glm::vec3(lightPosView));
+      //lightShader->SetVec3("lightPos", lightPos);
+      glm::vec4 viewview = view * glm::vec4(_camera._pos, 1.0f);
+      lightShader->SetVec3("viewPos", glm::vec3(viewview));
 
-      glm::mat4 model = glm::mat4(1.0f);
-      model = glm::translate(model, cubePositions[i]);
-      //float angle = 0;// 20.0f * (i + 1);
-      float angle = -20.0f;// * (i + 1);
-      float rotTime = time / 5.0f;
-      if (i == 1)
-        angle *= 15.5f;
-      else
-        model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f) * 3.0f);
+      lightShader->SetVec3("lightPos", glm::vec3(view * glm::vec4(newLightPos, 1.0f)));
+      //lightShader->SetVec3("lightPos", newLightPos);
 
-      angle = rotTime * (angle + i);
+      model = glm::mat4(1.0f);
+      model = glm::translate(model, cubePositions[0] + randvecs[i]);
+      model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f) * 3.0f);
 
+      angle = rotTime * (-20.0f);
       model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f * sin(time), 0.5f));
-      activeShader->SetMat4("model", model);
+      lightSourceCube->SetMat4("model", model);
 
-      glBindVertexArray(VAOs[i]);
+      glBindVertexArray(VAOs[0]);
       glDrawArrays(GL_TRIANGLES, 0, 36);
     }
 
