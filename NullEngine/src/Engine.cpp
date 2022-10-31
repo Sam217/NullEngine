@@ -60,36 +60,53 @@ void Engine::processInput()
 
   if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_UP) == GLFW_PRESS)
   {
-    ++_ratio;
+    if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+      ++_lightAmbIntensity;
+    else if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+      ++_lightDiffIntensity;
+    else if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_LEFT_ALT) == GLFW_PRESS)
+      ++_lightSpecIntensity;
+    else
+      ++_lightColorIntensity;
   }
 
   if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_DOWN) == GLFW_PRESS)
   {
-    --_ratio;
+    if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+      --_lightAmbIntensity;
+    else if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+      --_lightDiffIntensity;
+    else if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_LEFT_ALT) == GLFW_PRESS)
+      --_lightSpecIntensity;
+    else
+      --_lightColorIntensity;
   }
 
   if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_5) == GLFW_PRESS)
   {
-    _ratio = 100;
+    _lightColorIntensity = 100;
+    _lightAmbIntensity = 100;
+    _lightDiffIntensity = 100;
+    _lightSpecIntensity = 100;
   }
 
   if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_KP_ADD) == GLFW_PRESS)
   {
-    ++_lightIntensity;
+    ++_lightAmbIntensity;
   }
 
   if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_KP_SUBTRACT) == GLFW_PRESS)
   {
-    --_lightIntensity;
+    --_lightAmbIntensity;
   }
 
   if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_L) == GLFW_PRESS && currentFrame - lastPause > 0.2f)
   {
     lastPause = currentFrame;
-    if (!_lightIntensity)
-      _lightIntensity = 100;
+    if (!_lightColorIntensity)
+      _lightColorIntensity = 100;
     else
-      _lightIntensity = 0;
+      _lightColorIntensity = 0;
   }
 
   if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_P) == GLFW_PRESS && currentFrame - lastPause > 0.2f)
@@ -125,8 +142,11 @@ int Engine::Main()
 
   Texture containerDiffuseMap("containerWood");
   Texture containerSpecularMap("containerSteelBorder");
+  Texture containerEmissionMap("containerEmission");
   containerDiffuseMap.Load(root + "container2.png", GL_REPEAT);
   containerSpecularMap.Load(root + "container2_specular.png", GL_REPEAT);
+  containerEmissionMap.Load(root + "matrix_container.jpg", GL_REPEAT);
+  //containerSpecularMap.Load(root + "lighting_maps_specular_color.png", GL_REPEAT);
 
   unsigned int indices[] = {
         0, 1, 2, // first triangle
@@ -323,6 +343,20 @@ int Engine::Main()
     randvecs.push_back(randvec);
   }
 
+  lightShader->Use();
+  lightShader->SetInt("material.diffuse", 0);
+
+  glActiveTexture(GL_TEXTURE0);
+  containerDiffuseMap.Use();
+
+  lightShader->SetInt("material.specular", 1);
+  glActiveTexture(GL_TEXTURE1);
+  containerSpecularMap.Use();
+
+  lightShader->SetInt("material.emissive", 2);
+  glActiveTexture(GL_TEXTURE2);
+  containerEmissionMap.Use();
+
   // Main loop
   while (!glfwWindowShouldClose((GLFWwindow*)_window))
   {
@@ -353,6 +387,7 @@ int Engine::Main()
     //projection = glm::ortho(-(float)_width / 256, (float)_width / 256, -(float)_height / 256, (float)_height / 256, -100.1f, 100.0f);
 
     // set lighting properties
+    lightShader->Use();
     glm::vec3 lightColor;
     lightColor.x = sin((float)glfwGetTime() * 2.0f);
     lightColor.y = sin((float)glfwGetTime() * 0.7f);
@@ -360,32 +395,21 @@ int Engine::Main()
 
     glm::vec3 diffuseColor = lightColor * glm::vec3(0.5f);
     glm::vec3 ambientColor = diffuseColor * glm::vec3(0.1f);
-
-    lightShader->Use();
-    lightShader->SetInt("material.diffuse", 0);
-
-    glActiveTexture(GL_TEXTURE0);
-    containerDiffuseMap.Use();
-
-    lightShader->SetInt("material.specular", 1);
-    glActiveTexture(GL_TEXTURE1);
-    containerSpecularMap.Use();
     //lightShader->SetVec3("light.ambient", glm::vec3(0.2));
     //lightShader->SetVec3("light.diffuse", 0.5f, 0.5f, 0.5f); // darken diffuse light a bit
     /*lightShader->SetVec3("light.ambient", ambientColor);
     lightShader->SetVec3("light.diffuse", diffuseColor);*/
 
-    lightShader->SetVec3("light.ambient", glm::vec3(0.2f)* (float)_lightIntensity / 100.0f);
-    lightShader->SetVec3("light.diffuse", glm::vec3(1.0f)* (float)_lightIntensity / 100.0f);
-    lightShader->SetVec3("light.specular", glm::vec3(1.0f, 1.0f, 1.0f)* (float)_lightIntensity / 100.0f);
+    lightShader->SetVec3("light.ambient", glm::vec3(0.1f) * (float)(_lightAmbIntensity * _lightColorIntensity) / 100.0f / 100.0f);
+    lightShader->SetVec3("light.diffuse", glm::vec3(1.0f) * (float)(_lightDiffIntensity * _lightColorIntensity) / 100.0f / 100.0f);
+    lightShader->SetVec3("light.specular", glm::vec3(1.0f, 1.0f, 1.0f) * (float)(_lightSpecIntensity * _lightColorIntensity) / 100.0f / 100.0f);
     //lightShader->SetVec3("light.specular", lightColor);
-
+     
     lightSourceCube->Use();
     //lightSourceCube->SetVec3("lightColor", lightColor);
-    lightSourceCube->SetVec3("lightColor", glm::vec3(1.0f) * (float)_lightIntensity / 100.0f);
+    lightSourceCube->SetVec3("lightColor", glm::vec3(1.0f) * (float)_lightColorIntensity / 100.0f);
 
     // draw light source
-    lightSourceCube->Use();
     lightSourceCube->SetMat4("view", view);
     lightSourceCube->SetMat4("projection", projection);
 
@@ -410,7 +434,14 @@ int Engine::Main()
     lightShader->SetMat4("projection", projection);
     /*_shaders[0]->Use();
     _shaders[0]->SetFloat("ratio", _ratio / 100.0f);*/
-    lightShader->SetFloat("specularIntensity", _ratio / 100.0f);
+    glActiveTexture(GL_TEXTURE0);
+    containerDiffuseMap.Use();
+
+    glActiveTexture(GL_TEXTURE1);
+    containerSpecularMap.Use();
+
+    glActiveTexture(GL_TEXTURE2);
+    containerEmissionMap.Use();
 
     for (int i = 0; i < _materials.size(); ++i)
     {
@@ -420,7 +451,7 @@ int Engine::Main()
       //lightShader->SetVec3("material.specular", material.specular);
       //lightShader->SetFloat("material.shininess", material.shininess);
 
-      lightShader->SetVec3("material.specular", 0.5f, 0.5f, 0.5f);
+      //lightShader->SetVec3("material.specular", 0.5f, 0.5f, 0.5f);
       lightShader->SetFloat("material.shininess", 64.0f);
 
       /*lightShader->SetVec3("material.ambient", 1.0f, 0.5f, 0.31f);
@@ -444,7 +475,7 @@ int Engine::Main()
 
       angle = rotTime * (-20.0f);
       model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f * sin(time), 0.5f));
-      lightSourceCube->SetMat4("model", model);
+      lightShader->SetMat4("model", model);
 
       glBindVertexArray(VAOs[0]);
       glDrawArrays(GL_TRIANGLES, 0, 36);
