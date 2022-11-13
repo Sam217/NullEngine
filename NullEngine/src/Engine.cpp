@@ -230,9 +230,22 @@ int Engine::Main()
     glm::vec3(-1.3f,  1.0f, -1.5f)
   };*/
 
-  glm::vec3 cubePositions[] = {
+  /*glm::vec3 cubePositions[] = {
     glm::vec3(2.0f,  0.0f, -5.0f),
     glm::vec3(-3.0f, 2.0f, 10.0f)
+  };*/
+
+  glm::vec3 cubePositions[] = {
+      glm::vec3(0.0f,  0.0f,  0.0f),
+      glm::vec3(2.0f,  5.0f, -15.0f),
+      glm::vec3(-1.5f, -2.2f, -2.5f),
+      glm::vec3(-3.8f, -2.0f, -12.3f),
+      glm::vec3(2.4f, -0.4f, -3.5f),
+      glm::vec3(-1.7f,  3.0f, -7.5f),
+      glm::vec3(1.3f, -2.0f, -2.5f),
+      glm::vec3(1.5f,  2.0f, -2.5f),
+      glm::vec3(1.5f,  0.2f, -1.5f),
+      glm::vec3(-1.3f,  1.0f, -1.5f)
   };
 
   //glm::vec3 cubePositions[] = {
@@ -240,7 +253,8 @@ int Engine::Main()
   //  glm::vec3(1.2f, 1.0f, 2.0f)
   //};
 
-  auto& lightPos = cubePositions[1];
+  //auto& lightPos = cubePositions[1];
+  glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
 
   _shaders[0]->Use();
   _shaders[0]->SetInt("texture1", 0);
@@ -334,7 +348,8 @@ int Engine::Main()
   // randomize some cube positions
   std::random_device r;
   std::mt19937 gen(r());
-  std::uniform_real_distribution<float> uniform_dist(-10.0, 10.0);
+  float range = 5.0f;
+  std::uniform_real_distribution<float> uniform_dist(-range, range);
 
   std::vector<glm::vec3> randvecs;
   for (int i = 0; i < _materials.size(); ++i)
@@ -379,11 +394,9 @@ int Engine::Main()
     }
     // 4. draw the object
     // note that we're translating the scene in the reverse direction of where we want to move
-    glm::mat4 view = glm::mat4(1.0f);
-    view = _camera.GetViewMatrix();
+    glm::mat4 view = _camera.GetViewMatrix();
 
-    glm::mat4 projection;
-    projection = glm::perspective(glm::radians(_camera._fov), float(_width) / float(_height), 0.1f, 100.0f);
+    glm::mat4 projection = glm::perspective(glm::radians(_camera._fov), float(_width) / float(_height), 0.1f, 100.0f);
     //projection = glm::ortho(-(float)_width / 256, (float)_width / 256, -(float)_height / 256, (float)_height / 256, -100.1f, 100.0f);
 
     // set lighting properties
@@ -403,6 +416,10 @@ int Engine::Main()
     lightShader->SetVec3("light.ambient", glm::vec3(0.1f) * (float)(_lightAmbIntensity * _lightColorIntensity) / 100.0f / 100.0f);
     lightShader->SetVec3("light.diffuse", glm::vec3(1.0f) * (float)(_lightDiffIntensity * _lightColorIntensity) / 100.0f / 100.0f);
     lightShader->SetVec3("light.specular", glm::vec3(1.0f, 1.0f, 1.0f) * (float)(_lightSpecIntensity * _lightColorIntensity) / 100.0f / 100.0f);
+
+    lightShader->SetVec3("pointLight.ambient", glm::vec3(0.1f)* (float)(_lightAmbIntensity* _lightColorIntensity) / 100.0f / 100.0f);
+    lightShader->SetVec3("pointLight.diffuse", glm::vec3(1.0f)* (float)(_lightDiffIntensity* _lightColorIntensity) / 100.0f / 100.0f);
+    lightShader->SetVec3("pointLight.specular", glm::vec3(1.0f, 1.0f, 1.0f)* (float)(_lightSpecIntensity* _lightColorIntensity) / 100.0f / 100.0f);
     //lightShader->SetVec3("light.specular", lightColor);
      
     lightSourceCube->Use();
@@ -414,7 +431,9 @@ int Engine::Main()
     lightSourceCube->SetMat4("projection", projection);
 
     float posTime = time / 3.0f;
-    glm::vec3& newLightPos = lightPos = cubePositions[0] + glm::vec3(10.0f * cos(posTime) / 2, 10.0f * cos(posTime) / 3, 10.0f * sin(posTime));
+    float radius = 5.0f;
+    lightPos = cubePositions[0] + glm::vec3(radius * cos(posTime) / 2, radius * cos(posTime) / 3, radius * sin(posTime));
+    glm::vec3 newLightPos(-0.2f, -1.0f, -0.3f);
 
     glm::mat4 model(1.0f);
     model = glm::translate(model, lightPos);
@@ -423,6 +442,7 @@ int Engine::Main()
     angle = -20.0f * 15.5f;
 
     model = glm::rotate(model, glm::radians(rotTime * angle), glm::vec3(1.0f, 0.3f * sin(time), 0.5f));
+    model = glm::scale(model, glm::vec3(1.0f) * 0.2f);
     lightSourceCube->SetMat4("model", model);
 
     glBindVertexArray(VAOs[1]);
@@ -443,6 +463,16 @@ int Engine::Main()
     glActiveTexture(GL_TEXTURE2);
     containerEmissionMap.Use();
 
+    glBindVertexArray(VAOs[0]);
+    lightShader->SetVec3("viewPos", _camera._pos);
+    lightShader->SetVec3("light.direction", newLightPos);
+
+    lightShader->SetFloat("pointLight.constant", 1.0f);
+    lightShader->SetFloat("pointLight.linear", 0.09f);
+    lightShader->SetFloat("pointLight.quadratic", 0.032f);
+
+    lightShader->SetVec3("pointLight.position", lightPos);
+
     for (int i = 0; i < _materials.size(); ++i)
     {
       auto& material = _materials[i];
@@ -460,24 +490,26 @@ int Engine::Main()
       lightShader->SetFloat("material.shininess", 32.0f);*/
       /*lightPos.x = 1.0f + sin(glfwGetTime()) * 2.0f;
       lightPos.y = sin(glfwGetTime() / 2.0f) * 1.0f;*/
-      glm::vec4 lightPosView = view * glm::vec4(lightPos, 1.0f);
-      lightShader->SetVec3("lightPos", glm::vec3(lightPosView));
-      //lightShader->SetVec3("lightPos", lightPos);
-      glm::vec4 viewview = view * glm::vec4(_camera._pos, 1.0f);
-      lightShader->SetVec3("viewPos", glm::vec3(viewview));
 
-      lightShader->SetVec3("lightPos", glm::vec3(view * glm::vec4(newLightPos, 1.0f)));
-      //lightShader->SetVec3("lightPos", newLightPos);
+     /* glm::vec4 lightPosView = view * glm::vec4(lightPos, 1.0f);
+      lightShader->SetVec3("lightPos", glm::vec3(lightPosView));*/
+
+      //lightShader->SetVec3("lightPos", lightPos);
+      /*glm::vec4 viewview = view * glm::vec4(_camera._pos, 1.0f);
+      lightShader->SetVec3("viewPos", glm::vec3(viewview));*/
+
+      //lightShader->SetVec3("lightPos", glm::vec3(view * glm::vec4(newLightPos, 1.0f)));
+      //lightShader->SetVec3("light.direction", glm::vec3(view * glm::vec4(newLightPos, 1.0f)));
 
       model = glm::mat4(1.0f);
       model = glm::translate(model, cubePositions[0] + randvecs[i] + glm::normalize(randvecs[i]) * 2.0f);
-      model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f) * 3.0f);
+      //model = glm::translate(model, cubePositions[i]);
+      model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f) * 1.0f);
 
       angle = rotTime * (-20.0f);
       model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f * sin(time), 0.5f));
       lightShader->SetMat4("model", model);
 
-      glBindVertexArray(VAOs[0]);
       glDrawArrays(GL_TRIANGLES, 0, 36);
     }
 
@@ -552,6 +584,7 @@ void Engine::CreateShaders()
   std::unique_ptr<Shader> shader1(new Shader((root + "VertexShader.glsl").c_str(), (root + "FragmentShader.glsl").c_str()));
   std::unique_ptr<Shader> shader2(new Shader((root + "VertexShader.glsl").c_str(), (root + "FragmentShader2.glsl").c_str()));
   std::unique_ptr<Shader> shaderL(new Shader((root + "LightingCubeV.glsl").c_str(), (root + "LightingCubeF.glsl").c_str()));
+  //std::unique_ptr<Shader> shaderL(new Shader(R"(F:\MEGAsync\source\repos\LearnOpenGL\NullEngine\LearnOpenGL_guide\5.1.light_casters.vs)", R"(F:\MEGAsync\source\repos\LearnOpenGL\NullEngine\LearnOpenGL_guide\5.1.light_casters.fs)"));
   std::unique_ptr<Shader> shaderLs(new Shader((root + "LightingCubeV.glsl").c_str(), (root + "LightSourceF.glsl").c_str()));
 
   std::unique_ptr<Shader> shaderGouraud(new Shader((root + "LightingCubeV_Gouraud.glsl").c_str(), (root + "LightingCubeF_Gouraud.glsl").c_str()));

@@ -21,32 +21,32 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{b4689d12-4edb-4316-8d1a-0b4ad07b8c71}</ProjectGuid>
-    <RootNamespace>NullEngine</RootNamespace>
+    <ProjectGuid>{04704621-f296-4360-8dfd-bd5e88214462}</ProjectGuid>
+    <RootNamespace>LearnOpenGLguide</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v142</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -72,39 +72,30 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <OutDir>$(SolutionDir)bin\$(Platform)_$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)bin\Intermediates\$(Platform)_$(Configuration)\</IntDir>
-    <IncludePath>$(SolutionDir)Dependencies\glad\include\;$(SolutionDir)Dependencies\;$(SolutionDir)Dependencies\GLFW\include\</IncludePath>
+    <IncludePath>$(ProjectDir);$(SolutionDir)Dependencies\glad\include\;$(SolutionDir)Dependencies\;$(SolutionDir)Dependencies\GLFW\include\;$(SolutionDir)Dependencies\stb\;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)Dependencies\GLFW\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <OutDir>$(SolutionDir)bin\$(Platform)_$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)bin\Intermediates\$(Platform)_$(Configuration)\</IntDir>
-    <IncludePath>$(SolutionDir)Dependencies\glad\include\;$(SolutionDir)Dependencies\;$(SolutionDir)Dependencies\GLFW\include\</IncludePath>
+    <IncludePath>$(ProjectDir);$(SolutionDir)Dependencies\glad\include\;$(SolutionDir)Dependencies\;$(SolutionDir)Dependencies\GLFW\include\;$(SolutionDir)Dependencies\stb\;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)Dependencies\GLFW\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <OutDir>$(SolutionDir)bin\$(Platform)_$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)bin\Intermediates\$(Platform)_$(Configuration)\</IntDir>
-    <IncludePath>$(SolutionDir)Dependencies\glad\include\;$(SolutionDir)Dependencies\;$(SolutionDir)Dependencies\GLFW\include\</IncludePath>
+    <IncludePath>$(ProjectDir);$(SolutionDir)Dependencies\glad\include\;$(SolutionDir)Dependencies\;$(SolutionDir)Dependencies\GLFW\include\;$(SolutionDir)Dependencies\stb\;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)Dependencies\GLFW\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <OutDir>$(SolutionDir)bin\$(Platform)_$(Configuration)\</OutDir>
-    <IntDir>$(SolutionDir)bin\Intermediates\$(Platform)_$(Configuration)\</IntDir>
-    <IncludePath>$(SolutionDir)Dependencies\glad\include\;$(SolutionDir)Dependencies\;$(SolutionDir)Dependencies\GLFW\include\</IncludePath>
+    <IncludePath>$(ProjectDir);$(SolutionDir)Dependencies\glad\include\;$(SolutionDir)Dependencies\;$(SolutionDir)Dependencies\GLFW\include\;$(SolutionDir)Dependencies\stb\;$(IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)Dependencies\GLFW\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions);NULLENGINE_BUILD</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -118,9 +109,8 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions);NULLENGINE_BUILD</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -134,9 +124,8 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);NULLENGINE_BUILD</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -150,9 +139,8 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);NULLENGINE_BUILD</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -163,31 +151,22 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\Dependencies\GLAD\src\glad.c" />
+    <ClCompile Include="light_casters.cpp" />
+  </ItemGroup>
+  <ItemGroup>
     <ClInclude Include="..\Dependencies\stb\stb_image.h" />
-    <ClInclude Include="src\Camera.h" />
-    <ClInclude Include="src\Engine.h" />
-    <ClInclude Include="src\IEngine.h" />
-    <ClInclude Include="src\ObjectVertices.h" />
-    <ClInclude Include="src\Shader.h" />
-    <ClInclude Include="src\Texture.h" />
+    <ClInclude Include="learnopengl\camera.h" />
+    <ClInclude Include="learnopengl\filesystem.h" />
+    <ClInclude Include="learnopengl\shader_m.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\Dependencies\glad\src\glad.c" />
-    <ClCompile Include="src\Camera.cpp" />
-    <ClCompile Include="src\LearnOGLSource.cpp" />
-    <ClCompile Include="src\Engine.cpp" />
-    <ClCompile Include="src\Shader.cpp" />
-    <ClCompile Include="src\Texture.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="src\Shaders\LightingCubeF_Gouraud.glsl" />
-    <None Include="src\Shaders\LightingCubeV_Gouraud.glsl" />
-    <None Include="src\Shaders\LightSourceF.glsl" />
-    <None Include="src\Shaders\LightingCubeF.glsl" />
-    <None Include="src\Shaders\FragmentShader.glsl" />
-    <None Include="src\Shaders\FragmentShader2.glsl" />
-    <None Include="src\Shaders\LightingCubeV.glsl" />
-    <None Include="src\Shaders\VertexShader.glsl" />
+    <None Include="5.1.light_casters.fs" />
+    <None Include="5.1.light_casters.vs" />
+    <None Include="5.1.light_cube.fs" />
+    <None Include="5.1.light_cube.vs" />
+    <None Include="5.2.light_casters.fs" />
+    <None Include="5.2.light_casters.vs" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
