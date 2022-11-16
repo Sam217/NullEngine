@@ -480,6 +480,7 @@ int Engine::Main()
     lightShader->SetVec3("spotLight.position", _camera._pos);
     lightShader->SetVec3("spotLight.direction", _camera._front);
     lightShader->SetFloat("spotLight.cutOff", glm::cos(glm::radians(12.5f)));
+    lightShader->SetFloat("spotLight.outerCutOff", glm::cos(glm::radians(17.5f)));
 
     lightShader->SetFloat("spotLight.constant", 1.0f);
     lightShader->SetFloat("spotLight.linear", 0.09f);
