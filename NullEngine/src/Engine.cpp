@@ -420,6 +420,10 @@ int Engine::Main()
     lightShader->SetVec3("pointLight.ambient", glm::vec3(0.1f)* (float)(_lightAmbIntensity* _lightColorIntensity) / 100.0f / 100.0f);
     lightShader->SetVec3("pointLight.diffuse", glm::vec3(1.0f)* (float)(_lightDiffIntensity* _lightColorIntensity) / 100.0f / 100.0f);
     lightShader->SetVec3("pointLight.specular", glm::vec3(1.0f, 1.0f, 1.0f)* (float)(_lightSpecIntensity* _lightColorIntensity) / 100.0f / 100.0f);
+
+    lightShader->SetVec3("spotLight.ambient", glm::vec3(0.1f));
+    lightShader->SetVec3("spotLight.diffuse", glm::vec3(1.0f));
+    lightShader->SetVec3("spotLight.specular", glm::vec3(1.0f, 1.0f, 1.0f));
     //lightShader->SetVec3("light.specular", lightColor);
      
     lightSourceCube->Use();
@@ -472,6 +476,14 @@ int Engine::Main()
     lightShader->SetFloat("pointLight.quadratic", 0.032f);
 
     lightShader->SetVec3("pointLight.position", lightPos);
+
+    lightShader->SetVec3("spotLight.position", _camera._pos);
+    lightShader->SetVec3("spotLight.direction", _camera._front);
+    lightShader->SetFloat("spotLight.cutOff", glm::cos(glm::radians(12.5f)));
+
+    lightShader->SetFloat("spotLight.constant", 1.0f);
+    lightShader->SetFloat("spotLight.linear", 0.09f);
+    lightShader->SetFloat("spotLight.quadratic", 0.032f);
 
     for (int i = 0; i < _materials.size(); ++i)
     {

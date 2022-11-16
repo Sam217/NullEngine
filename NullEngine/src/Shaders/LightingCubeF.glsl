@@ -29,6 +29,19 @@ struct PointLight {
     float quadratic;
 };
 
+struct SpotLight {
+    vec3  position;
+    vec3  direction;
+    float cutOff;
+  
+    vec3 ambient;
+    vec3 diffuse;
+    vec3 specular;
+
+    float constant;
+    float linear;
+    float quadratic;
+};
 
 struct Material {
     sampler2D diffuse;
@@ -41,6 +54,8 @@ in vec2 TexCoords;
   
 uniform Light light; 
 uniform PointLight pointLight; 
+uniform SpotLight spotLight;
+
 uniform Material material;
 uniform vec3 viewPos;
 
@@ -70,7 +85,33 @@ void main()
     vec3 emissive = (1 - diff) * floor(vec3(1.0f) - texture(material.specular, TexCoords).rgb) * texture(material.emissive, TexCoords).rgb;
     //vec3 emissive = vec3(0);
 
+    // calculate spotLight influence
+    vec3 spLightDir = normalize(spotLight.position - FragPos);
+    float theta = dot(spLightDir, normalize(-spotLight.direction));
+    
+    vec3 spotLightRes = vec3(0.0);
+    if(theta > spotLight.cutOff) 
+    {       
+        // do lighting calculations
+
+        float dist = length(spotLight.position - FragPos);
+        float attenuation = 1.0 / (spotLight.constant + spotLight.linear * dist + spotLight.quadratic * (dist * dist)); 
+        //vec3 lightDir = normalize(-light.direction);
+
+        float diff = max(dot(norm, spLightDir), 0.0);
+        vec3 diffuse = spotLight.diffuse * (diff * vec3(texture(material.diffuse, TexCoords)));
+
+        // specular lighting
+        vec3 viewDir = normalize(viewPos - FragPos);
+        vec3 reflectDir = reflect(-spLightDir, norm); 
+
+        float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
+        vec3 specular = (spec * texture(material.specular, TexCoords)).rgb * spotLight.specular; 
+
+        spotLightRes = (ambient + diffuse + specular) * attenuation;
+    }
+
     // resulting lighting
-    vec3 result = (ambient + diffuse + specular) * attenuation;// + emissive;
+    vec3 result = (ambient + diffuse + specular) * attenuation + spotLightRes;// + emissive;
     FragColor = vec4(result, 1.0);
 } 
