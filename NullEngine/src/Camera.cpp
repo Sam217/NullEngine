@@ -112,9 +112,15 @@ void Camera::ProcessMouseMovement(const GLFWwindow* wnd, double xpos, double ypo
   if (constrainPitch)
   {
     if (_pitch > 89.9f)
+    {
       _pitch = 89.9f;
+      _pitch2 = 89.9f;
+    }
     else if (_pitch < -89.9f)
+    {
       _pitch = -89.9f;
+      _pitch2 = -89.9f;
+    }
   }
 
   float xoffset = (float)xpos - _mouseLastX;
@@ -126,7 +132,9 @@ void Camera::ProcessMouseMovement(const GLFWwindow* wnd, double xpos, double ypo
   yoffset *= _mouseSensitivity;
 
   _yaw += xoffset;
+  _yaw2 = xoffset;
   _pitch += yoffset;
+  _pitch2 = yoffset;
 
   UpdateVectors();
 }
@@ -144,18 +152,30 @@ void Camera::UpdateVectors()
 {
   // look direction
   glm::vec3 direction;
-  direction.x = cos(glm::radians(_yaw)) * cos(glm::radians(_pitch));
+
+  /*direction.x = cos(glm::radians(_yaw)) * cos(glm::radians(_pitch));
   direction.y = sin(glm::radians(_pitch));
-  direction.z = sin(glm::radians(_yaw)) * cos(glm::radians(_pitch));
+  direction.z = sin(glm::radians(_yaw)) * cos(glm::radians(_pitch));*/
+
+  glm::mat4 rotYaw(1.0f);
+  rotYaw = glm::rotate(rotYaw, glm::radians(-_yaw2), _up);
+  direction = glm::vec3(rotYaw * glm::vec4(_front, 0.0f));
+
+  glm::vec3 camRight = glm::normalize(glm::cross(direction, _up));
+
+  glm::mat4 rotPitch(1.0f);
+  rotPitch = glm::rotate(rotPitch, glm::radians(_pitch2), camRight);
+  direction = glm::vec3(rotPitch * glm::vec4(direction, 0.0f));
 
   _front = glm::normalize(direction);
+  _up = glm::normalize(glm::cross(camRight, _front));
 }
 
 void Camera::UpdateRoll()
 {
   // roll
   glm::mat4 rot(1.0f);
-  rot = glm::rotate(rot, glm::radians(_roll), _pos + _front);
+  rot = glm::rotate(rot, glm::radians(_roll), _front);
   _up = glm::normalize(glm::vec3(rot * glm::vec4(_worldUp, 0.0f)));
 }
 

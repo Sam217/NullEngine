@@ -48,8 +48,10 @@ public:
   //! Euler angles
   //! pitch
   float _pitch = PITCH;
+  float _pitch2 = PITCH;
   //! yaw
   float _yaw = YAW;
+  float _yaw2 = YAW;
   //! UNUSED
   float _roll = 0.0f;
 
