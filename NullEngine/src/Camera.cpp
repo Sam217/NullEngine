@@ -32,6 +32,7 @@ void Camera::ProcessKeyboard(const GLFWwindow* wnd, float dt)
 {
   // camera control
   float cameraSpeed = 2.5f * dt;
+  float rollSpeed = 50.0f * dt;
 
   //glm::vec3 fpsFront(_front.x, 0.0f, _front.z);
   glm::vec3 fpsFront(_front);
@@ -40,6 +41,7 @@ void Camera::ProcessKeyboard(const GLFWwindow* wnd, float dt)
   if (glfwGetKey((GLFWwindow*)wnd, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
   {
     cameraSpeed *= 3.0f;
+    rollSpeed *= 2.0f;
   }
 
   if (glfwGetKey((GLFWwindow*)wnd, GLFW_KEY_W) == GLFW_PRESS)
@@ -75,9 +77,27 @@ void Camera::ProcessKeyboard(const GLFWwindow* wnd, float dt)
     //_camera._pos -= cameraSpeed * glm::normalize(glm::cross(_camera._up, _camera._front));
     _pos -= cameraSpeed * glm::normalize(glm::cross(_up, fpsFront));
   }
+
+  // ROLL
+  if (glfwGetKey((GLFWwindow*)wnd, GLFW_KEY_Q) == GLFW_PRESS)
+  {
+    _roll += rollSpeed;
+  }
+
+  if (glfwGetKey((GLFWwindow*)wnd, GLFW_KEY_E) == GLFW_PRESS)
+  {
+    _roll -= rollSpeed;
+  }
+
+  if (glfwGetKey((GLFWwindow*)wnd, GLFW_KEY_T) == GLFW_PRESS)
+  {
+    _roll = 0.0f;
+  }
+
+  UpdateRoll();
 }
 
-void Camera::ProcessMouse(const GLFWwindow* wnd, double xpos, double ypos, bool constrainPitch)
+void Camera::ProcessMouseMovement(const GLFWwindow* wnd, double xpos, double ypos, bool constrainPitch)
 {
   //static float lastX, lastY;
   static bool firstMouse = true;
@@ -91,10 +111,10 @@ void Camera::ProcessMouse(const GLFWwindow* wnd, double xpos, double ypos, bool 
   // clamp the pitch to avoid LookAt flip
   if (constrainPitch)
   {
-    if (_pitch > 89)
-      _pitch = 89;
-    else if (_pitch < -89)
-      _pitch = -89;
+    if (_pitch > 89.9f)
+      _pitch = 89.9f;
+    else if (_pitch < -89.9f)
+      _pitch = -89.9f;
   }
 
   float xoffset = (float)xpos - _mouseLastX;
@@ -114,7 +134,7 @@ void Camera::ProcessMouse(const GLFWwindow* wnd, double xpos, double ypos, bool 
 void Camera::ProcessMouseScroll(float yoffset)
 {
   _fov -= (float)yoffset;
-  if (_fov <FOVmin)
+  if (_fov < FOVmin)
     _fov = FOVmin;
   if (_fov > FOVmax)
     _fov = FOVmax;
@@ -122,12 +142,21 @@ void Camera::ProcessMouseScroll(float yoffset)
 
 void Camera::UpdateVectors()
 {
+  // look direction
   glm::vec3 direction;
   direction.x = cos(glm::radians(_yaw)) * cos(glm::radians(_pitch));
   direction.y = sin(glm::radians(_pitch));
   direction.z = sin(glm::radians(_yaw)) * cos(glm::radians(_pitch));
 
   _front = glm::normalize(direction);
+}
+
+void Camera::UpdateRoll()
+{
+  // roll
+  glm::mat4 rot(1.0f);
+  rot = glm::rotate(rot, glm::radians(_roll), _pos + _front);
+  _up = glm::normalize(glm::vec3(rot * glm::vec4(_worldUp, 0.0f)));
 }
 
 } // namespace NullEngine

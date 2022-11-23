@@ -38,7 +38,7 @@ public:
   Camera(const Camera& other) = default;
   Camera(float lastX, float lastY) : _mouseLastX(lastX), _mouseLastY(lastY) {};
   Camera(glm::vec3& pos, glm::vec3& up, glm::vec3 front, float mouseLastX, float mouseLastY) 
-   : _pos(pos), _up(up), _front(front), _mouseLastX(mouseLastX), _mouseLastY(mouseLastY) {}
+   : _pos(pos), _up(up), _worldUp(up), _front(front), _mouseLastX(mouseLastX), _mouseLastY(mouseLastY) {}
 
 public:
   //! Mouse sensitivity
@@ -57,6 +57,7 @@ public:
   glm::vec3 _pos = glm::vec3(0.0f, 0.0f, 3.0f);
   //! 
   glm::vec3 _up = glm::vec3(0.0f, 1.0f, 0.0f);
+  glm::vec3 _worldUp = glm::vec3(0.0f, 1.0f, 0.0f);;
   //! 
   glm::vec3 _front = glm::vec3(0.0f, 0.0f, -1.0f);
 
@@ -65,7 +66,7 @@ public:
   //! Process keyboard input
   void ProcessKeyboard(const GLFWwindow* wnd, float dt);
   //! Process mouse input
-  void ProcessMouse(const GLFWwindow* wnd, double xpos, double ypos, bool constrainPitch = true);
+  void ProcessMouseMovement(const GLFWwindow* wnd, double xpos, double ypos, bool constrainPitch = true);
   void ProcessMouseScroll(float yoffset);
 
 private:
@@ -75,6 +76,7 @@ private:
 
   //! Update camera vectors
   void UpdateVectors();
+  void UpdateRoll();
 };
 
 glm::mat4 myLookAt(Camera& c);

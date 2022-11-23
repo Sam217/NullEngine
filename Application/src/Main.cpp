@@ -10,6 +10,7 @@ int main()
 	e->Main();
 
 	//LearnOGL();
+	LightCasters5_4_main();
 
 	NullEngine::ReleaseEngine(e);
 	//std::cin.get();

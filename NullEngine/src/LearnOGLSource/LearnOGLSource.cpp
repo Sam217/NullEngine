@@ -8,12 +8,12 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include "Engine.h"
-#include "Shader.h"
-#include "Texture.h"
+#include "../Engine.h"
+#include "../Shader.h"
+#include "../Texture.h"
 
-void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-void processInput(GLFWwindow* window);
+static void framebuffer_size_callback(GLFWwindow* window, int width, int height);
+static void processInput(GLFWwindow* window);
 
 // settings
 const unsigned int SCR_WIDTH = 800;

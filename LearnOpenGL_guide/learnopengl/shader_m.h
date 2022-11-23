@@ -8,6 +8,7 @@
 #include <fstream>
 #include <sstream>
 #include <iostream>
+#include "filesystem.h"
 
 class Shader
 {
@@ -28,8 +29,11 @@ public:
     try
     {
       // open files
-      vShaderFile.open(vertexPath);
-      fShaderFile.open(fragmentPath);
+      //std::string rootPath = "F:/MEGAsync/source/repos/LearnOpenGL/NullEngine/LearnOpenGL_guide/shaders";
+      std::string rootVPath = FileSystem::getPath(std::string("shaders/") + vertexPath);
+      std::string rootFPath = FileSystem::getPath(std::string("shaders/") + fragmentPath);
+      vShaderFile.open(rootVPath);
+      fShaderFile.open(rootFPath);
       std::stringstream vShaderStream, fShaderStream;
       // read file's buffer contents into streams
       vShaderStream << vShaderFile.rdbuf();

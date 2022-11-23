@@ -152,21 +152,13 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\Dependencies\GLAD\src\glad.c" />
-    <ClCompile Include="light_casters.cpp" />
+    <ClCompile Include="5.4.light_casters.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Dependencies\stb\stb_image.h" />
     <ClInclude Include="learnopengl\camera.h" />
     <ClInclude Include="learnopengl\filesystem.h" />
     <ClInclude Include="learnopengl\shader_m.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="5.1.light_casters.fs" />
-    <None Include="5.1.light_casters.vs" />
-    <None Include="5.1.light_cube.fs" />
-    <None Include="5.1.light_cube.vs" />
-    <None Include="5.2.light_casters.fs" />
-    <None Include="5.2.light_casters.vs" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

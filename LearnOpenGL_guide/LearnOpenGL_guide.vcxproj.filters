@@ -15,10 +15,10 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="light_casters.cpp">
+    <ClCompile Include="..\Dependencies\GLAD\src\glad.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\Dependencies\GLAD\src\glad.c">
+    <ClCompile Include="5.4.light_casters.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -35,13 +35,5 @@
     <ClInclude Include="..\Dependencies\stb\stb_image.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="5.1.light_casters.fs" />
-    <None Include="5.1.light_casters.vs" />
-    <None Include="5.1.light_cube.fs" />
-    <None Include="5.1.light_cube.vs" />
-    <None Include="5.2.light_casters.fs" />
-    <None Include="5.2.light_casters.vs" />
   </ItemGroup>
 </Project>

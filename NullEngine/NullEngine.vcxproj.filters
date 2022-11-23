@@ -50,10 +50,13 @@
     <ClCompile Include="src\Texture.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\LearnOGLSource.cpp">
+    <ClCompile Include="src\LearnOGLSource\LearnOGLSource.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\Camera.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\LearnOGLSource\5.4_light_casters.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

@@ -25,3 +25,4 @@ namespace NullEngine {
 } // namespace NullEngine
 
 extern "C" NULLENGINE_API int LearnOGL();
+extern "C" NULLENGINE_API int LightCasters5_4_main();

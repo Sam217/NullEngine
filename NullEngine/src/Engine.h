@@ -27,11 +27,14 @@ namespace NullEngine {
 		//! Camera
 		Camera _camera;
 
-		//! input for GLSL mix function
+		//! ligts modification params
 		int _lightColorIntensity = 100;
 		int _lightAmbIntensity = 100;
 		int _lightDiffIntensity = 100;
 		int _lightSpecIntensity = 100;
+
+		int _spotLightColorIntensity = 100;
+
 		bool _pause = false;
 		//
 		int _width = 1600;

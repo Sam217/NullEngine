@@ -103,7 +103,7 @@ void main()
 
         // specular lighting
         vec3 viewDir = normalize(viewPos - FragPos);
-        vec3 reflectDir = reflect(-spLightDir, norm); 
+        vec3 reflectDir = reflect(normalize(viewDir), norm); 
 
         float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
         vec3 specular = (spec * texture(material.specular, TexCoords)).rgb * spotLight.specular; 

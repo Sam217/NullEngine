@@ -37,7 +37,7 @@ void Engine::Framebuffer_size_callback(GLFWwindow* window, int width, int height
 
 void Engine::Mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
-  _engineContext->_camera.ProcessMouse(window, xpos, ypos);
+  _engineContext->_camera.ProcessMouseMovement(window, xpos, ypos);
 }
 
 void Engine::Scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
@@ -103,10 +103,17 @@ void Engine::processInput()
   if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_L) == GLFW_PRESS && currentFrame - lastPause > 0.2f)
   {
     lastPause = currentFrame;
-    if (!_lightColorIntensity)
-      _lightColorIntensity = 100;
+    int* lightIntens;
+
+    if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+      lightIntens = &_spotLightColorIntensity;
     else
-      _lightColorIntensity = 0;
+      lightIntens = &_lightColorIntensity;
+
+    if (!*lightIntens)
+      *lightIntens = 100;
+    else
+      *lightIntens = 0;
   }
 
   if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_P) == GLFW_PRESS && currentFrame - lastPause > 0.2f)
@@ -415,15 +422,15 @@ int Engine::Main()
 
     lightShader->SetVec3("light.ambient", glm::vec3(0.1f) * (float)(_lightAmbIntensity * _lightColorIntensity) / 100.0f / 100.0f);
     lightShader->SetVec3("light.diffuse", glm::vec3(1.0f) * (float)(_lightDiffIntensity * _lightColorIntensity) / 100.0f / 100.0f);
-    lightShader->SetVec3("light.specular", glm::vec3(1.0f, 1.0f, 1.0f) * (float)(_lightSpecIntensity * _lightColorIntensity) / 100.0f / 100.0f);
+    lightShader->SetVec3("light.specular", glm::vec3(1.0f) * (float)(_lightSpecIntensity * _lightColorIntensity) / 100.0f / 100.0f);
 
-    lightShader->SetVec3("pointLight.ambient", glm::vec3(0.1f)* (float)(_lightAmbIntensity* _lightColorIntensity) / 100.0f / 100.0f);
-    lightShader->SetVec3("pointLight.diffuse", glm::vec3(1.0f)* (float)(_lightDiffIntensity* _lightColorIntensity) / 100.0f / 100.0f);
-    lightShader->SetVec3("pointLight.specular", glm::vec3(1.0f, 1.0f, 1.0f)* (float)(_lightSpecIntensity* _lightColorIntensity) / 100.0f / 100.0f);
+    lightShader->SetVec3("pointLight.ambient", glm::vec3(0.1f)* (float)(_lightAmbIntensity * _lightColorIntensity) / 100.0f / 100.0f);
+    lightShader->SetVec3("pointLight.diffuse", glm::vec3(1.0f)* (float)(_lightDiffIntensity * _lightColorIntensity) / 100.0f / 100.0f);
+    lightShader->SetVec3("pointLight.specular", glm::vec3(1.0f)* (float)(_lightSpecIntensity * _lightColorIntensity) / 100.0f / 100.0f);
 
-    lightShader->SetVec3("spotLight.ambient", glm::vec3(0.1f));
-    lightShader->SetVec3("spotLight.diffuse", glm::vec3(1.0f));
-    lightShader->SetVec3("spotLight.specular", glm::vec3(1.0f, 1.0f, 1.0f));
+    lightShader->SetVec3("spotLight.ambient", glm::vec3(0.1f) * (float)(_spotLightColorIntensity) / 100.0f);
+    lightShader->SetVec3("spotLight.diffuse", glm::vec3(1.0f) * (float)(_spotLightColorIntensity) / 100.0f);
+    lightShader->SetVec3("spotLight.specular", glm::vec3(1.0f) * (float)(_spotLightColorIntensity) / 100.0f);
     //lightShader->SetVec3("light.specular", lightColor);
      
     lightSourceCube->Use();
