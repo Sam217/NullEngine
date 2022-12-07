@@ -1,6 +1,7 @@
 #include <iostream>
 #include <windows.h>
 #include <random>
+#include <sstream>
 
 #include <glad/glad.h>
 #include <glfw3.h>
@@ -260,6 +261,13 @@ int Engine::Main()
   //  glm::vec3(1.2f, 1.0f, 2.0f)
   //};
 
+  glm::vec3 pointLightPositions[] = {
+  glm::vec3(0.7f,  0.2f,  2.0f),
+  glm::vec3(2.3f, -3.3f, -4.0f),
+  glm::vec3(-4.0f,  2.0f, -12.0f),
+  glm::vec3(0.0f,  0.0f, -3.0f)
+  };
+
   //auto& lightPos = cubePositions[1];
   glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
 
@@ -365,6 +373,16 @@ int Engine::Main()
     randvecs.push_back(randvec);
   }
 
+  std::uniform_int_distribution<int> uni_sgn(1, 2);
+  int randsgn[4];
+  std::uniform_real_distribution<float> uni_rad(5, 20);
+  int randRadius[4];
+  for (int i = 0; i < 4; ++i)
+  {
+    randsgn[i] = uni_sgn(gen) == 1 ? -1 : 1;
+    randRadius[i] = uni_rad(gen);
+  }
+
   lightShader->Use();
   lightShader->SetInt("material.diffuse", 0);
 
@@ -407,34 +425,7 @@ int Engine::Main()
     //projection = glm::ortho(-(float)_width / 256, (float)_width / 256, -(float)_height / 256, (float)_height / 256, -100.1f, 100.0f);
 
     // set lighting properties
-    lightShader->Use();
-    glm::vec3 lightColor;
-    lightColor.x = sin((float)glfwGetTime() * 2.0f);
-    lightColor.y = sin((float)glfwGetTime() * 0.7f);
-    lightColor.z = sin((float)glfwGetTime() * 1.3f);
-
-    glm::vec3 diffuseColor = lightColor * glm::vec3(0.5f);
-    glm::vec3 ambientColor = diffuseColor * glm::vec3(0.1f);
-    //lightShader->SetVec3("light.ambient", glm::vec3(0.2));
-    //lightShader->SetVec3("light.diffuse", 0.5f, 0.5f, 0.5f); // darken diffuse light a bit
-    /*lightShader->SetVec3("light.ambient", ambientColor);
-    lightShader->SetVec3("light.diffuse", diffuseColor);*/
-
-    lightShader->SetVec3("light.ambient", glm::vec3(0.1f) * (float)(_lightAmbIntensity * _lightColorIntensity) / 100.0f / 100.0f);
-    lightShader->SetVec3("light.diffuse", glm::vec3(1.0f) * (float)(_lightDiffIntensity * _lightColorIntensity) / 100.0f / 100.0f);
-    lightShader->SetVec3("light.specular", glm::vec3(1.0f) * (float)(_lightSpecIntensity * _lightColorIntensity) / 100.0f / 100.0f);
-
-    lightShader->SetVec3("pointLight.ambient", glm::vec3(0.1f)* (float)(_lightAmbIntensity * _lightColorIntensity) / 100.0f / 100.0f);
-    lightShader->SetVec3("pointLight.diffuse", glm::vec3(1.0f)* (float)(_lightDiffIntensity * _lightColorIntensity) / 100.0f / 100.0f);
-    lightShader->SetVec3("pointLight.specular", glm::vec3(1.0f)* (float)(_lightSpecIntensity * _lightColorIntensity) / 100.0f / 100.0f);
-
-    lightShader->SetVec3("spotLight.ambient", glm::vec3(0.1f) * (float)(_spotLightColorIntensity) / 100.0f);
-    lightShader->SetVec3("spotLight.diffuse", glm::vec3(1.0f) * (float)(_spotLightColorIntensity) / 100.0f);
-    lightShader->SetVec3("spotLight.specular", glm::vec3(1.0f) * (float)(_spotLightColorIntensity) / 100.0f);
-    //lightShader->SetVec3("light.specular", lightColor);
-     
     lightSourceCube->Use();
-    //lightSourceCube->SetVec3("lightColor", lightColor);
     lightSourceCube->SetVec3("lightColor", glm::vec3(1.0f) * (float)_lightColorIntensity / 100.0f);
 
     // draw light source
@@ -463,8 +454,7 @@ int Engine::Main()
     lightShader->Use();
     lightShader->SetMat4("view", view);
     lightShader->SetMat4("projection", projection);
-    /*_shaders[0]->Use();
-    _shaders[0]->SetFloat("ratio", _ratio / 100.0f);*/
+
     glActiveTexture(GL_TEXTURE0);
     containerDiffuseMap.Use();
 
@@ -474,15 +464,88 @@ int Engine::Main()
     glActiveTexture(GL_TEXTURE2);
     containerEmissionMap.Use();
 
-    glBindVertexArray(VAOs[0]);
     lightShader->SetVec3("viewPos", _camera._pos);
-    lightShader->SetVec3("light.direction", newLightPos);
+
+    lightShader->SetVec3("dirLight.ambient",  glm::vec3(0.1f)/* * (float)(_lightAmbIntensity  * _lightColorIntensity) / 100.0f / 100.0f*/);
+    lightShader->SetVec3("dirLight.diffuse",  glm::vec3(0.0f)/* * (float)(_lightDiffIntensity * _lightColorIntensity) / 100.0f / 100.0f*/);
+    lightShader->SetVec3("dirLight.specular", glm::vec3(0.0f)/* * (float)(_lightSpecIntensity * _lightColorIntensity) / 100.0f / 100.0f*/);
+    lightShader->SetVec3("dirLight.direction", glm::vec3(0.0f, -50.0f, 0.0f));
+
+    //lightShader->SetVec3("pointLight.direction", newLightPos);
+    lightShader->SetVec3("pointLight.position", lightPos);
+    // ambient part should not be there
+    lightShader->SetVec3("pointLight.ambient", glm::vec3(0.0f)* (float)(_lightAmbIntensity * _lightColorIntensity) / 100.0f / 100.0f);
+    lightShader->SetVec3("pointLight.diffuse", glm::vec3(1.0f)* (float)(_lightDiffIntensity * _lightColorIntensity) / 100.0f / 100.0f);
+    lightShader->SetVec3("pointLight.specular", glm::vec3(1.0f)* (float)(_lightSpecIntensity * _lightColorIntensity) / 100.0f / 100.0f);
+     
 
     lightShader->SetFloat("pointLight.constant", 1.0f);
     lightShader->SetFloat("pointLight.linear", 0.09f);
     lightShader->SetFloat("pointLight.quadratic", 0.032f);
 
-    lightShader->SetVec3("pointLight.position", lightPos);
+    std::stringstream s;
+    s << "pointLights[";
+    std::streampos cur = s.tellp();
+
+    glm::vec3 movedPosisitons[4];
+
+    for (int i = 0; i < 4; ++i)
+    {
+      movedPosisitons[i] = pointLightPositions[i] + glm::vec3(randRadius[i] * cos(randsgn[i] * posTime), randRadius[i] * cos(posTime), randRadius[i] * sin(randsgn[3 - i] * posTime));
+      s.seekp(cur);
+      s << i << "].position";
+      s.put('\0');
+      lightShader->SetVec3(s.str(), movedPosisitons[i]);
+
+      s.seekp(cur + std::streampos(3));
+      s << "diffuse";
+      s.put('\0');
+      lightShader->SetVec3(s.str(), glm::vec3(1.0f) * (float)(_lightDiffIntensity * _lightColorIntensity) / 100.0f / 100.0f);
+
+      s.seekp(cur + std::streampos(3));
+      s << "specular";
+      s.put('\0');
+      lightShader->SetVec3(s.str(), glm::vec3(1.0f) * (float)(_lightSpecIntensity * _lightColorIntensity) / 100.0f / 100.0f);
+
+      s.seekp(cur + std::streampos(3));
+      s << "constant";
+      s.put('\0');
+      lightShader->SetFloat(s.str(), 1.0f);
+
+      s.seekp(cur + std::streampos(3));
+      s << "linear";
+      s.put('\0');
+      lightShader->SetFloat(s.str(), 0.09f);
+
+      s.seekp(cur + std::streampos(3));
+      s << "quadratic";
+      s.put('\0');
+      lightShader->SetFloat(s.str(), 0.032f);
+    }
+
+    // Draw all point lights
+    lightSourceCube->Use();
+    for (auto& position : movedPosisitons)
+    {
+      glm::mat4 model(1.0f);
+      model = glm::translate(model, position);
+      float angle;
+      float rotTime = time / 5.0f;
+      angle = -20.0f * 15.5f;
+
+      model = glm::rotate(model, glm::radians(rotTime * angle), glm::vec3(1.0f, 0.3f * sin(time), 0.5f));
+      model = glm::scale(model, glm::vec3(1.0f) * 0.2f);
+      lightSourceCube->SetMat4("model", model);
+      
+      glBindVertexArray(VAOs[1]);
+      glDrawArrays(GL_TRIANGLES, 0, 36);
+    }
+
+    lightShader->Use();
+
+    lightShader->SetVec3("spotLight.ambient", glm::vec3(0.1f) * (float)(_spotLightColorIntensity) / 100.0f);
+    lightShader->SetVec3("spotLight.diffuse", glm::vec3(1.0f) * (float)(_spotLightColorIntensity) / 100.0f);
+    lightShader->SetVec3("spotLight.specular", glm::vec3(1.0f) * (float)(_spotLightColorIntensity) / 100.0f);
 
     lightShader->SetVec3("spotLight.position", _camera._pos);
     lightShader->SetVec3("spotLight.direction", _camera._front);
@@ -493,6 +556,7 @@ int Engine::Main()
     lightShader->SetFloat("spotLight.linear", 0.09f);
     lightShader->SetFloat("spotLight.quadratic", 0.032f);
 
+    glBindVertexArray(VAOs[0]);
     for (int i = 0; i < _materials.size(); ++i)
     {
       auto& material = _materials[i];

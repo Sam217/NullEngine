@@ -37,9 +37,9 @@ namespace NullEngine {
 
 		bool _pause = false;
 		//
-		int _width = 1600;
+		int _width = 1920;
 		// 
-		int _height = 900;
+		int _height = 1080;
 
 		//! list of shaders
 		std::vector<std::unique_ptr<Shader>> _shaders;
