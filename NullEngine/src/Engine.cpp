@@ -145,15 +145,15 @@ int Engine::Main()
 
   Texture texture1("container");
   Texture texture2("AwesomeFace", true);
-  texture1.Load(root + container_tex_src, GL_REPEAT);
-  texture2.Load(root + face_tex_src, GL_REPEAT);
+  texture1.Load(container_tex_src, root, GL_REPEAT);
+  texture2.Load(face_tex_src, root, GL_REPEAT);
 
   Texture containerDiffuseMap("containerWood");
   Texture containerSpecularMap("containerSteelBorder");
   Texture containerEmissionMap("containerEmission");
-  containerDiffuseMap.Load(root + "container2.png", GL_REPEAT);
-  containerSpecularMap.Load(root + "container2_specular.png", GL_REPEAT);
-  containerEmissionMap.Load(root + "matrix_container.jpg", GL_REPEAT);
+  containerDiffuseMap.Load("container2.png", root, GL_REPEAT);
+  containerSpecularMap.Load("container2_specular.png", root, GL_REPEAT);
+  containerEmissionMap.Load("matrix_container.jpg", root, GL_REPEAT);
   //containerSpecularMap.Load(root + "lighting_maps_specular_color.png", GL_REPEAT);
 
   unsigned int indices[] = {

@@ -1,16 +1,15 @@
 #include <iostream>
-#include <glad/glad.h> 
 #include "stb/stb_image.h"
 #include "Texture.h"
 
 namespace NullEngine
 {
 
-bool Texture::Load(const std::string& path, int wrapMode)
+bool Texture::Load(const std::string& path, const std::string& directory, int wrapMode /* = GL_REPEAT*/)
 {
   int nrChannels;
   stbi_set_flip_vertically_on_load(_flip);
-  unsigned char* data = stbi_load((path).c_str(), &_width, &_height, &nrChannels, 0);
+  unsigned char* data = stbi_load((directory + path).c_str(), &_width, &_height, &nrChannels, 0);
   stbi_set_flip_vertically_on_load(false);
 
   GLenum format = 0;
@@ -55,7 +54,7 @@ bool Texture::Load(const std::string& path, int wrapMode)
 
 void Texture::Use()
 {
-  glBindTexture(GL_TEXTURE_2D, _glId);
+  glBindTexture(GL_TEXTURE_2D, Id());
 }
 
 } // namespace NullEngine
