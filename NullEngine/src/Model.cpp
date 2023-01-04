@@ -1,5 +1,7 @@
 #include <iostream>
 #include "Model.h"
+#include <set>
+#include <map>
 
 namespace NullEngine
 {
@@ -44,7 +46,7 @@ Mesh Model::ProcessMesh(aiMesh* mesh, const aiScene* scene)
 {
   std::vector<Vertex> vertices;
   std::vector<unsigned int> indices;
-  std::vector<Texture> textures;
+  std::vector<std::shared_ptr<Texture>> textures;
 
   for (unsigned i = 0; i < mesh->mNumVertices; i++)
   {
@@ -80,24 +82,37 @@ Mesh Model::ProcessMesh(aiMesh* mesh, const aiScene* scene)
     // add diffuse maps
     textures = LoadMaterialTextures(material, aiTextureType_DIFFUSE, std::string("texture_diffuse"));
     // add specular maps
-    std::vector<Texture> specularMaps = LoadMaterialTextures(material, aiTextureType_SPECULAR, std::string("texture_specular"));
+    std::vector<std::shared_ptr<Texture>> specularMaps = LoadMaterialTextures(material, aiTextureType_SPECULAR, std::string("texture_specular"));
     textures.insert(textures.end(), std::make_move_iterator(specularMaps.begin()), std::make_move_iterator(specularMaps.end()));
   }
 
   return Mesh(std::move(vertices), std::move(indices), std::move(textures));
 }
 
-std::vector<Texture> Model::LoadMaterialTextures(const aiMaterial* mat, aiTextureType type, const std::string& typeName)
+std::map<std::string, std::shared_ptr<Texture>> loaded_textures;
+
+std::vector<std::shared_ptr<Texture>> Model::LoadMaterialTextures(const aiMaterial* mat, aiTextureType type, const std::string& typeName)
 {
-  std::vector<Texture> textures(mat->GetTextureCount(type));
-  for (unsigned i = 0; i < textures.size(); ++i)
+  std::vector<std::shared_ptr<Texture>> textures;
+  for (unsigned i = 0; i < mat->GetTextureCount(type); ++i)
   {
-    Texture& tex = textures[i];
+    std::shared_ptr<Texture> tex = std::make_shared<Texture>();
     aiString aipath;
     mat->GetTexture(type, i, &aipath);
-    tex.SetName(typeName);
-    tex.SetPath(aipath.C_Str());
-    tex.Load(aipath.C_Str(), _directory);
+
+    auto loaded = loaded_textures.find(aipath.C_Str());
+    if (loaded != loaded_textures.end())
+    {
+      textures.push_back(loaded->second);
+    }
+    else
+    {
+      tex->SetName(typeName);
+      tex->SetPath(aipath.C_Str());
+      tex->Load(aipath.C_Str(), _directory);
+      textures.push_back(tex);
+      loaded_textures[aipath.C_Str()] = tex;
+    }
   }
 
   return textures;

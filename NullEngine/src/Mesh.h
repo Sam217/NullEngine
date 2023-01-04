@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <memory>
 #include "Texture.h"
 #include "Vertex.h"
 #include "Shader.h"
@@ -16,9 +17,9 @@ public:
   // mesh data
   vector<Vertex>       _vertices;
   vector<unsigned int> _indices;
-  vector<Texture>      _textures;
+  vector<std::shared_ptr<Texture>> _textures;
 
-  Mesh(vector<Vertex>&& vertices, vector<unsigned int>&& indices, vector<Texture>&& textures);
+  Mesh(vector<Vertex>&& vertices, vector<unsigned int>&& indices, vector<std::shared_ptr<Texture>>&& textures);
   void Draw(Shader& shader);
 private:
   //  render data

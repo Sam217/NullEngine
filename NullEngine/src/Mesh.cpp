@@ -3,7 +3,7 @@
 namespace NullEngine
 {
 
-Mesh::Mesh(vector<Vertex>&& vertices, vector<unsigned int>&& indices, vector<Texture>&& textures)
+Mesh::Mesh(vector<Vertex>&& vertices, vector<unsigned int>&& indices, vector<std::shared_ptr<Texture>>&& textures)
 {
   this->_vertices = std::move(vertices);
   this->_indices = std::move(indices);
@@ -21,14 +21,14 @@ void Mesh::Draw(Shader& shader)
     glActiveTexture(GL_TEXTURE0 + i); // activate proper texture unit before binding
     // retrieve texture number (the N in diffuse_textureN)
     std::string number;
-    std::string name = _textures[i].Name();
+    std::string name = _textures[i]->Name();
     if (name == "texture_diffuse")
       number = std::to_string(diffuseNr++);
     else if (name == "texture_specular")
       number = std::to_string(specularNr++);
 
     shader.SetInt(("material." + name + number).c_str(), i);
-    glBindTexture(GL_TEXTURE_2D, _textures[i].Id());
+    glBindTexture(GL_TEXTURE_2D, _textures[i]->Id());
   }
   glActiveTexture(GL_TEXTURE0);
 
