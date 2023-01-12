@@ -55,8 +55,11 @@ Mesh Model::ProcessMesh(aiMesh* mesh, const aiScene* scene)
     const aiVector3D& meshVec = mesh->mVertices[i];
     vertex.Position = glm::vec3(meshVec.x, meshVec.y, meshVec.z);
 
-    const aiVector3D& meshVecN = mesh->mNormals[i];
-    vertex.Normal = glm::vec3(meshVecN.x, meshVecN.y, meshVecN.z);
+    if (mesh->mNormals)
+    {
+      const aiVector3D& meshVecN = mesh->mNormals[i];
+      vertex.Normal = glm::vec3(meshVecN.x, meshVecN.y, meshVecN.z);
+    }
 
     if (mesh->mTextureCoords[0])
     {
@@ -72,7 +75,7 @@ Mesh Model::ProcessMesh(aiMesh* mesh, const aiScene* scene)
   for (unsigned i = 0; i < mesh->mNumFaces; ++i)
   {
     const aiFace& face = mesh->mFaces[i];
-    for (int j = 0; i < face.mNumIndices; ++j)
+    for (int j = 0; j < face.mNumIndices; ++j)
       indices.push_back(face.mIndices[j]);
   }
   // process material
@@ -96,7 +99,6 @@ std::vector<std::shared_ptr<Texture>> Model::LoadMaterialTextures(const aiMateri
   std::vector<std::shared_ptr<Texture>> textures;
   for (unsigned i = 0; i < mat->GetTextureCount(type); ++i)
   {
-    std::shared_ptr<Texture> tex = std::make_shared<Texture>();
     aiString aipath;
     mat->GetTexture(type, i, &aipath);
 
@@ -107,7 +109,7 @@ std::vector<std::shared_ptr<Texture>> Model::LoadMaterialTextures(const aiMateri
     }
     else
     {
-      tex->SetName(typeName);
+      std::shared_ptr<Texture> tex = std::make_shared<Texture>(typeName, _flippedTextures);
       tex->SetPath(aipath.C_Str());
       tex->Load(aipath.C_Str(), _directory);
       textures.push_back(tex);

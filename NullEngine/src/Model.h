@@ -11,11 +11,14 @@ namespace NullEngine
 class Model
 {
 public:
-  Model(char* path)
+  Model(const char* path, bool flippedTex = false)
   {
+    _flippedTextures = flippedTex;
     LoadModel(path);
   }
   void Draw(Shader& shader);
+
+  bool _flippedTextures;
 
 private:
   // model data

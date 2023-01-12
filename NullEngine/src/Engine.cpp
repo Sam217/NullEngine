@@ -13,6 +13,7 @@
 #include "IEngine.h"
 #include "Shader.h"
 #include "Texture.h"
+#include "Model.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb/stb_image.h"
 
@@ -155,6 +156,10 @@ int Engine::Main()
   containerSpecularMap.Load("container2_specular.png", root, GL_REPEAT);
   containerEmissionMap.Load("matrix_container.jpg", root, GL_REPEAT);
   //containerSpecularMap.Load(root + "lighting_maps_specular_color.png", GL_REPEAT);
+
+  Model guitarBag("../Resources/backpack/backpack.obj", true);
+  Model singapore("../Resources/singapore/untitled.obj");
+  //Model destructor("../Resources/destructor-pesado-imperial-isd-1/Destructor imperial ISD 1.obj");
 
   unsigned int indices[] = {
         0, 1, 2, // first triangle
@@ -556,46 +561,84 @@ int Engine::Main()
     lightShader->SetFloat("spotLight.linear", 0.09f);
     lightShader->SetFloat("spotLight.quadratic", 0.032f);
 
-    glBindVertexArray(VAOs[0]);
-    for (int i = 0; i < _materials.size(); ++i)
+    auto drawContainers = [&]()
     {
-      auto& material = _materials[i];
-      //lightShader->SetVec3("material.ambient", material.ambient);
-      //lightShader->SetVec3("material.diffuse", material.diffuse);
-      //lightShader->SetVec3("material.specular", material.specular);
-      //lightShader->SetFloat("material.shininess", material.shininess);
+      glBindVertexArray(VAOs[0]);
+      for (int i = 0; i < _materials.size(); ++i)
+      {
+        auto& material = _materials[i];
+        //lightShader->SetVec3("material.ambient", material.ambient);
+        //lightShader->SetVec3("material.diffuse", material.diffuse);
+        //lightShader->SetVec3("material.specular", material.specular);
+        //lightShader->SetFloat("material.shininess", material.shininess);
 
-      //lightShader->SetVec3("material.specular", 0.5f, 0.5f, 0.5f);
-      lightShader->SetFloat("material.shininess", 64.0f);
+        //lightShader->SetVec3("material.specular", 0.5f, 0.5f, 0.5f);
+        lightShader->SetFloat("material.shininess", 64.0f);
 
-      /*lightShader->SetVec3("material.ambient", 1.0f, 0.5f, 0.31f);
-      lightShader->SetVec3("material.diffuse", 1.0f, 0.5f, 0.31f);
-      lightShader->SetVec3("material.specular", 0.5f, 0.5f, 0.5f);
-      lightShader->SetFloat("material.shininess", 32.0f);*/
-      /*lightPos.x = 1.0f + sin(glfwGetTime()) * 2.0f;
-      lightPos.y = sin(glfwGetTime() / 2.0f) * 1.0f;*/
+        /*lightShader->SetVec3("material.ambient", 1.0f, 0.5f, 0.31f);
+        lightShader->SetVec3("material.diffuse", 1.0f, 0.5f, 0.31f);
+        lightShader->SetVec3("material.specular", 0.5f, 0.5f, 0.5f);
+        lightShader->SetFloat("material.shininess", 32.0f);*/
+        /*lightPos.x = 1.0f + sin(glfwGetTime()) * 2.0f;
+        lightPos.y = sin(glfwGetTime() / 2.0f) * 1.0f;*/
 
-     /* glm::vec4 lightPosView = view * glm::vec4(lightPos, 1.0f);
-      lightShader->SetVec3("lightPos", glm::vec3(lightPosView));*/
+        /* glm::vec4 lightPosView = view * glm::vec4(lightPos, 1.0f);
+         lightShader->SetVec3("lightPos", glm::vec3(lightPosView));*/
 
-      //lightShader->SetVec3("lightPos", lightPos);
-      /*glm::vec4 viewview = view * glm::vec4(_camera._pos, 1.0f);
-      lightShader->SetVec3("viewPos", glm::vec3(viewview));*/
+         //lightShader->SetVec3("lightPos", lightPos);
+         /*glm::vec4 viewview = view * glm::vec4(_camera._pos, 1.0f);
+         lightShader->SetVec3("viewPos", glm::vec3(viewview));*/
 
-      //lightShader->SetVec3("lightPos", glm::vec3(view * glm::vec4(newLightPos, 1.0f)));
-      //lightShader->SetVec3("light.direction", glm::vec3(view * glm::vec4(newLightPos, 1.0f)));
+         //lightShader->SetVec3("lightPos", glm::vec3(view * glm::vec4(newLightPos, 1.0f)));
+         //lightShader->SetVec3("light.direction", glm::vec3(view * glm::vec4(newLightPos, 1.0f)));
 
-      model = glm::mat4(1.0f);
-      model = glm::translate(model, cubePositions[0] + randvecs[i] + glm::normalize(randvecs[i]) * 2.0f);
-      //model = glm::translate(model, cubePositions[i]);
-      model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f) * 1.0f);
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, cubePositions[0] + randvecs[i] + glm::normalize(randvecs[i]) * 2.0f);
+        //model = glm::translate(model, cubePositions[i]);
+        model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f) * 1.0f);
 
-      angle = rotTime * (-20.0f);
-      model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f * sin(time), 0.5f));
-      lightShader->SetMat4("model", model);
+        angle = rotTime * (-20.0f);
+        model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f * sin(time), 0.5f));
+        lightShader->SetMat4("model", model);
 
-      glDrawArrays(GL_TRIANGLES, 0, 36);
-    }
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+      }
+    };
+
+    //drawContainers();
+
+    model = glm::mat4(1.0);
+    glm::vec3 bagPos(0.0f, 5.0f, 1.0f);
+    model = glm::translate(model, bagPos);
+    //model = glm::rotate(model, glm::degrees(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+
+    lightShader->SetMat4("model", model);
+    lightShader->SetFloat("material.shininess", 64.0f);
+    guitarBag.Draw(*lightShader);
+
+    model = glm::mat4(1.0);
+    glm::vec3 singaporePos(0.0f, -5.0f, 1.0f);
+    model = glm::translate(model, singaporePos);
+    model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f) * 0.01f);
+
+    /*lightShader->SetVec3("dirLight.ambient", glm::vec3(0.1f));
+    lightShader->SetVec3("dirLight.diffuse", glm::vec3(1.0f));
+    lightShader->SetVec3("dirLight.specular", glm::vec3(1.0f));
+
+    lightShader->SetVec3("dirLight.direction", glm::vec3(1.0f, 1.0f, 0.0f));
+
+    lightShader->SetFloat("dirLight.constant", 0.0f);
+    lightShader->SetFloat("dirLight.linear", 0.0f);
+    lightShader->SetFloat("dirLight.quadratic", 0.0f);*/
+
+    lightShader->SetMat4("model", model);
+    /*lightShader->SetVec3("material.ambient", obsidian.ambient);
+    lightShader->SetVec3("material.diffuse", obsidian.diffuse);
+    lightShader->SetVec3("material.specular", obsidian.specular);
+    lightShader->SetFloat("material.shininess", obsidian.shininess);*/
+
+    singapore.Draw(*lightShader);
+    //destructor.Draw(*lightShader);
 
     glfwSwapBuffers((GLFWwindow*)_window);
     glfwPollEvents();

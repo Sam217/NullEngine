@@ -117,7 +117,7 @@ vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir)
     float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
     vec3 specular = (spec * texture(material.specular, TexCoords)).rgb * light.specular;
 
-    return (diffuse + specular) * attenuation;
+    return (diffuse + specular) ;//* attenuation;
 }
 
 vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir)

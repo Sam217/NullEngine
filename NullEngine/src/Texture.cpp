@@ -9,7 +9,7 @@ bool Texture::Load(const std::string& path, const std::string& directory, int wr
 {
   int nrChannels;
   stbi_set_flip_vertically_on_load(_flip);
-  unsigned char* data = stbi_load((directory + path).c_str(), &_width, &_height, &nrChannels, 0);
+  unsigned char* data = stbi_load((directory + "/" + path).c_str(), &_width, &_height, &nrChannels, 0);
   stbi_set_flip_vertically_on_load(false);
 
   GLenum format = 0;
