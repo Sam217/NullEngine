@@ -78,8 +78,9 @@ NULLENGINE_API int LightCasters5_4_main()
 
   // build and compile our shader zprogram
   // ------------------------------------
-  Shader lightingShader("5.4.light_casters.vs", "5.4.light_casters.fs");
-  Shader lightCubeShader("5.1.light_cube.vs", "5.1.light_cube.fs");
+  std::string shaderRoot = "../LearnOpenGL_guide/shaders/";
+  Shader lightingShader((shaderRoot + "5.4.light_casters.vs").c_str(), (shaderRoot + "5.4.light_casters.fs").c_str());
+  Shader lightCubeShader((shaderRoot + "5.1.light_cube.vs").c_str(), (shaderRoot + "5.1.light_cube.fs").c_str());
 
   // set up vertex data (and buffer(s)) and configure vertex attributes
   // ------------------------------------------------------------------
@@ -168,8 +169,8 @@ NULLENGINE_API int LightCasters5_4_main()
 
   // load textures (we now use a utility function to keep the code more organized)
   // -----------------------------------------------------------------------------
-  unsigned int diffuseMap = loadTexture(FileSystem::getPath("resources/textures/container2.png").c_str());
-  unsigned int specularMap = loadTexture(FileSystem::getPath("resources/textures/container2_specular.png").c_str());
+  unsigned int diffuseMap = loadTexture(FileSystem::getPath("../resources/container2.png").c_str());
+  unsigned int specularMap = loadTexture(FileSystem::getPath("../resources/container2_specular.png").c_str());
 
   // shader configuration
   // --------------------

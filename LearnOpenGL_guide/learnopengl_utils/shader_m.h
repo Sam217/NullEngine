@@ -29,9 +29,8 @@ public:
     try
     {
       // open files
-      //std::string rootPath = "F:/MEGAsync/source/repos/LearnOpenGL/NullEngine/LearnOpenGL_guide/shaders";
-      std::string rootVPath = FileSystem::getPath(std::string("shaders/") + vertexPath);
-      std::string rootFPath = FileSystem::getPath(std::string("shaders/") + fragmentPath);
+      std::string rootVPath = FileSystem::getPath(vertexPath);
+      std::string rootFPath = FileSystem::getPath(fragmentPath);
       vShaderFile.open(rootVPath);
       fShaderFile.open(rootFPath);
       std::stringstream vShaderStream, fShaderStream;

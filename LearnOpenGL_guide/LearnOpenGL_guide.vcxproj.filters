@@ -23,13 +23,13 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="learnopengl\shader_m.h">
+    <ClInclude Include="learnopengl_utils\shader_m.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="learnopengl\camera.h">
+    <ClInclude Include="learnopengl_utils\camera.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="learnopengl\filesystem.h">
+    <ClInclude Include="learnopengl_utils\filesystem.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\Dependencies\stb\stb_image.h">

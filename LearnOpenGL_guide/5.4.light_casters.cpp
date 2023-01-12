@@ -2,14 +2,14 @@
 #include <GLFW/glfw3.h>
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
-#include <learnopengl/filesystem.h>
+#include <learnopengl_utils/filesystem.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include <learnopengl/shader_m.h>
-#include <learnopengl/camera.h>
+#include <learnopengl_utils/shader_m.h>
+#include <learnopengl_utils/camera.h>
 
 #include <iostream>
 
@@ -77,8 +77,9 @@ int main()
 
   // build and compile our shader zprogram
   // ------------------------------------
-  Shader lightingShader("5.4.light_casters.vs", "5.4.light_casters.fs");
-  Shader lightCubeShader("5.1.light_cube.vs", "5.1.light_cube.fs");
+  std::string shaderRoot = "shaders/";
+  Shader lightingShader((shaderRoot + "5.4.light_casters.vs").c_str(), (shaderRoot + "5.4.light_casters.fs").c_str());
+  Shader lightCubeShader((shaderRoot + "5.1.light_cube.vs").c_str(), (shaderRoot + "5.1.light_cube.fs").c_str());
 
   // set up vertex data (and buffer(s)) and configure vertex attributes
   // ------------------------------------------------------------------

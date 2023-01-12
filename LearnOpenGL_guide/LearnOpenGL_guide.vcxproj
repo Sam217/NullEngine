@@ -156,9 +156,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Dependencies\stb\stb_image.h" />
-    <ClInclude Include="learnopengl\camera.h" />
-    <ClInclude Include="learnopengl\filesystem.h" />
-    <ClInclude Include="learnopengl\shader_m.h" />
+    <ClInclude Include="learnopengl_utils\camera.h" />
+    <ClInclude Include="learnopengl_utils\filesystem.h" />
+    <ClInclude Include="learnopengl_utils\shader_m.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
