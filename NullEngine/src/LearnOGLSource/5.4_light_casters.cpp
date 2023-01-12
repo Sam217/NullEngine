@@ -2,14 +2,14 @@
 #include <GLFW/glfw3.h>
 //#define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
-#include "learnopengl/filesystem.h"
+#include "learnopengl_utils/filesystem.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include <learnopengl/shader_m.h>
-#include <learnopengl/camera.h>
+#include <learnopengl_utils/shader_m.h>
+#include <learnopengl_utils/camera.h>
 
 #include <iostream>
 #include "../Engine.h"
