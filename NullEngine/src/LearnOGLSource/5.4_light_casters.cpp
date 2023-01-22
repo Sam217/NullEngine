@@ -25,14 +25,14 @@ const unsigned int SCR_WIDTH = 1600;
 const unsigned int SCR_HEIGHT = 900;
 
 // camera
-Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
-float lastX = SCR_WIDTH / 2.0f;
-float lastY = SCR_HEIGHT / 2.0f;
-bool firstMouse = true;
+static Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
+static float lastX = SCR_WIDTH / 2.0f;
+static float lastY = SCR_HEIGHT / 2.0f;
+static bool firstMouse = true;
 
 // timing
-float deltaTime = 0.0f;
-float lastFrame = 0.0f;
+static float deltaTime = 0.0f;
+static float lastFrame = 0.0f;
 
 NULLENGINE_API int LightCasters5_4_main()
 {

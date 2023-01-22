@@ -410,7 +410,8 @@ int Engine::Main()
 
     // rendering
     //glClearColor(0.1f, 0.15f, 0.3f, 0.75f);
-    glClearColor(0.01f, 0.01f, 0.01f, 0.75f);
+    //glClearColor(0.01f, 0.01f, 0.01f, 0.75f);
+    glClearColor(0.1f, 0.55f, 0.9f, 0.75f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     //glClear(GL_COLOR_BUFFER_BIT);
 

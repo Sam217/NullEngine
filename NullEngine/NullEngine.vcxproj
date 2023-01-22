@@ -178,6 +178,7 @@
     <ClCompile Include="..\Dependencies\glad\src\glad.c" />
     <ClCompile Include="src\Camera.cpp" />
     <ClCompile Include="src\LearnOGLSource\5.4_light_casters.cpp" />
+    <ClCompile Include="src\LearnOGLSource\depth_testing.cpp" />
     <ClCompile Include="src\LearnOGLSource\LearnOGLSource.cpp" />
     <ClCompile Include="src\Engine.cpp" />
     <ClCompile Include="src\Mesh.cpp" />
