@@ -11,11 +11,14 @@ namespace NullEngine
 class Model
 {
 public:
-  Model(const char* path, bool flippedTex = false)
+  Model(const char* path, const char* texturesPath = nullptr, bool flippedTex = false)
   {
     _flippedTextures = flippedTex;
+    if (texturesPath)
+      _texturesDirectory = texturesPath;
     LoadModel(path);
   }
+
   void Draw(Shader& shader);
 
   bool _flippedTextures;
@@ -24,6 +27,7 @@ private:
   // model data
   std::vector<Mesh> _meshes;
   std::string _directory;
+  std::string _texturesDirectory;
 
   void LoadModel(std::string path);
   void ProcessNode(aiNode* node, const aiScene* scene);

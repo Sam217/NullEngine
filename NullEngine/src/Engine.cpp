@@ -157,9 +157,10 @@ int Engine::Main()
   containerEmissionMap.Load("matrix_container.jpg", root, GL_REPEAT);
   //containerSpecularMap.Load(root + "lighting_maps_specular_color.png", GL_REPEAT);
 
-  Model guitarBag("../Resources/backpack/backpack.obj", true);
-  Model singapore("../Resources/singapore/untitled.obj");
+  Model guitarBag("../Resources/backpack/backpack.obj", nullptr, true);
+  //Model singapore("../Resources/singapore/untitled.obj");
   //Model destructor("../Resources/destructor-pesado-imperial-isd-1/Destructor imperial ISD 1.obj");
+  Model sponza("../Resources/sponza/source/sponza.fbx", "../Resources/sponza/textures", false);
 
   unsigned int indices[] = {
         0, 1, 2, // first triangle
@@ -638,8 +639,9 @@ int Engine::Main()
     lightShader->SetVec3("material.specular", obsidian.specular);
     lightShader->SetFloat("material.shininess", obsidian.shininess);*/
 
-    singapore.Draw(*lightShader);
+    //singapore.Draw(*lightShader);
     //destructor.Draw(*lightShader);
+    sponza.Draw(*lightShader);
 
     glfwSwapBuffers((GLFWwindow*)_window);
     glfwPollEvents();

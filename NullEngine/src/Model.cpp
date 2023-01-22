@@ -111,7 +111,11 @@ std::vector<std::shared_ptr<Texture>> Model::LoadMaterialTextures(const aiMateri
     {
       std::shared_ptr<Texture> tex = std::make_shared<Texture>(typeName, _flippedTextures);
       tex->SetPath(aipath.C_Str());
-      tex->Load(aipath.C_Str(), _directory);
+      if (_texturesDirectory.empty())
+        tex->Load(aipath.C_Str(), _directory);
+      else
+        tex->Load(aipath.C_Str(), _texturesDirectory);
+
       textures.push_back(tex);
       loaded_textures[aipath.C_Str()] = tex;
     }
