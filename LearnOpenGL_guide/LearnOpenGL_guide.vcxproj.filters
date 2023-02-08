@@ -36,4 +36,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="shaders\2.stencil_single_color.fs" />
+    <None Include="shaders\2.stencil_testing.fs" />
+    <None Include="shaders\2.stencil_testing.vs" />
+  </ItemGroup>
 </Project>

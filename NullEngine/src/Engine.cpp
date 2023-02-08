@@ -158,9 +158,12 @@ int Engine::Main()
   //containerSpecularMap.Load(root + "lighting_maps_specular_color.png", GL_REPEAT);
 
   Model guitarBag("../Resources/backpack/backpack.obj", nullptr, true);
-  //Model singapore("../Resources/singapore/untitled.obj");
+  Model singapore("../Resources/singapore/untitled.obj");
   //Model destructor("../Resources/destructor-pesado-imperial-isd-1/Destructor imperial ISD 1.obj");
-  Model sponza("../Resources/sponza/source/sponza.fbx", "../Resources/sponza/textures", false);
+  //Model sponza("../Resources/sponza/source/sponza.fbx", "../Resources/sponza/textures", false);
+
+  std::string shaderRoot = "../LearnOpenGL_guide/shaders/";
+  Shader shaderSingleColor((shaderRoot + "2.stencil_testing.vs").c_str(), (shaderRoot + "2.stencil_single_color.fs").c_str());
 
   unsigned int indices[] = {
         0, 1, 2, // first triangle
@@ -288,6 +291,7 @@ int Engine::Main()
 
   // this enables Z-buffer so that faces overlap correctly when projected to the screen
   glEnable(GL_DEPTH_TEST);
+  glEnable(GL_STENCIL_TEST);
 
   float time = 0.0f, timeLast = 0.0f, deltap = 0.0f;
 
@@ -413,8 +417,7 @@ int Engine::Main()
     //glClearColor(0.1f, 0.15f, 0.3f, 0.75f);
     //glClearColor(0.01f, 0.01f, 0.01f, 0.75f);
     glClearColor(0.1f, 0.55f, 0.9f, 0.75f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    //glClear(GL_COLOR_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
     if (!_pause)
     {
@@ -462,6 +465,11 @@ int Engine::Main()
     lightShader->SetMat4("view", view);
     lightShader->SetMat4("projection", projection);
 
+    shaderSingleColor.Use();
+    shaderSingleColor.SetMat4("view", view);
+    shaderSingleColor.SetMat4("projection", projection);
+    lightShader->Use();
+
     glActiveTexture(GL_TEXTURE0);
     containerDiffuseMap.Use();
 
@@ -484,7 +492,7 @@ int Engine::Main()
     lightShader->SetVec3("pointLight.ambient", glm::vec3(0.0f)* (float)(_lightAmbIntensity * _lightColorIntensity) / 100.0f / 100.0f);
     lightShader->SetVec3("pointLight.diffuse", glm::vec3(1.0f)* (float)(_lightDiffIntensity * _lightColorIntensity) / 100.0f / 100.0f);
     lightShader->SetVec3("pointLight.specular", glm::vec3(1.0f)* (float)(_lightSpecIntensity * _lightColorIntensity) / 100.0f / 100.0f);
-     
+
 
     lightShader->SetFloat("pointLight.constant", 1.0f);
     lightShader->SetFloat("pointLight.linear", 0.09f);
@@ -543,7 +551,7 @@ int Engine::Main()
       model = glm::rotate(model, glm::radians(rotTime * angle), glm::vec3(1.0f, 0.3f * sin(time), 0.5f));
       model = glm::scale(model, glm::vec3(1.0f) * 0.2f);
       lightSourceCube->SetMat4("model", model);
-      
+
       glBindVertexArray(VAOs[1]);
       glDrawArrays(GL_TRIANGLES, 0, 36);
     }
@@ -618,6 +626,12 @@ int Engine::Main()
     lightShader->SetFloat("material.shininess", 64.0f);
     guitarBag.Draw(*lightShader);
 
+    model = glm::scale(model, glm::vec3(1.1f));
+    shaderSingleColor.Use();
+    shaderSingleColor.SetMat4("model", model);
+    guitarBag.Highlight(shaderSingleColor);
+
+    lightShader->Use();
     model = glm::mat4(1.0);
     glm::vec3 singaporePos(0.0f, -5.0f, 1.0f);
     model = glm::translate(model, singaporePos);
@@ -639,9 +653,9 @@ int Engine::Main()
     lightShader->SetVec3("material.specular", obsidian.specular);
     lightShader->SetFloat("material.shininess", obsidian.shininess);*/
 
-    //singapore.Draw(*lightShader);
+    singapore.Draw(*lightShader);
     //destructor.Draw(*lightShader);
-    sponza.Draw(*lightShader);
+    //sponza.Draw(*lightShader);
 
     glfwSwapBuffers((GLFWwindow*)_window);
     glfwPollEvents();
@@ -735,7 +749,7 @@ void Engine::InitVertices()
     // positions         // colors
      0.5f, -0.5f, 0.0f,  1.0f, 0.0f, 0.0f,   // bottom right
     -0.5f, -0.5f, 0.0f,  0.0f, 1.0f, 0.0f,   // bottom left
-     0.0f,  0.5f, 0.0f,  0.0f, 0.0f, 1.0f    // top 
+     0.0f,  0.5f, 0.0f,  0.0f, 0.0f, 1.0f    // top
   };
 
   //triangle rotating
@@ -751,7 +765,7 @@ void Engine::InitVertices()
      0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,   // top right
      0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,   // bottom right
     -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,   // bottom left
-    -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f    // top left 
+    -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f    // top left
   };
 
   // rectangle for the awesomeface texture
@@ -760,7 +774,7 @@ void Engine::InitVertices()
      0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   0.55f, 0.55f,   // top right
      0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   0.45f, 0.55f,   // bottom right
     -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,  0.45f, 0.45f,   // bottom left
-    -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,  0.45f, 0.55f,   // top left 
+    -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,  0.45f, 0.55f,   // top left
   };
 
   std::vector<float> baseCubeVertices = {

@@ -1,15 +1,33 @@
 #include <iostream>
-#include "Model.h"
 #include <set>
 #include <map>
+//#include <glfw3.h>
+#include "Model.h"
 
 namespace NullEngine
 {
-  
+
 void Model::Draw(Shader& shader)
 {
+  glStencilFunc(GL_ALWAYS, 1, 0xFF);
+  glStencilMask(0xFF);
   for (unsigned i = 0; i < _meshes.size(); i++)
     _meshes[i].Draw(shader);
+}
+
+void Model::Highlight(Shader& shader)
+{
+  glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+  glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
+  glStencilMask(0x00);
+  glDisable(GL_DEPTH_TEST);
+
+  for (unsigned i = 0; i < _meshes.size(); i++)
+    _meshes[i].Draw(shader);
+
+  glStencilMask(0xFF);
+  glStencilFunc(GL_ALWAYS, 0, 0xFF);
+  glEnable(GL_DEPTH_TEST);
 }
 
 void Model::LoadModel(std::string path)

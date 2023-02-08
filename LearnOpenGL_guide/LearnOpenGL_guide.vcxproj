@@ -160,6 +160,11 @@
     <ClInclude Include="learnopengl_utils\filesystem.h" />
     <ClInclude Include="learnopengl_utils\shader_m.h" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="shaders\2.stencil_single_color.fs" />
+    <None Include="shaders\2.stencil_testing.fs" />
+    <None Include="shaders\2.stencil_testing.vs" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

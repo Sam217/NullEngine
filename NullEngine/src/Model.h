@@ -20,6 +20,7 @@ public:
   }
 
   void Draw(Shader& shader);
+  void Highlight(Shader& shader);
 
   bool _flippedTextures;
 
