@@ -31,8 +31,8 @@ glm::mat4 myLookAt(NullEngine::Camera& c)
 void Camera::ProcessKeyboard(const GLFWwindow* wnd, float dt)
 {
   // camera control
-  float cameraSpeed = 2.5f * dt;
-  float rollSpeed = 50.0f * dt;
+  float cameraSpeed = MovementSpeed * dt;
+  float rollSpeed = RollSpeed * dt;
 
   //glm::vec3 fpsFront(_front.x, 0.0f, _front.z);
   glm::vec3 fpsFront(_front);
@@ -97,6 +97,36 @@ void Camera::ProcessKeyboard(const GLFWwindow* wnd, float dt)
   UpdateRoll();
 }
 
+void Camera::ProcessKeyboard(Camera_Movement direction, float deltaTime)
+{
+  const float cameraSpeed = MovementSpeed * deltaTime;
+  const float rollSpeed = RollSpeed * deltaTime;
+
+  glm::vec3 fpsFront(_front);
+  fpsFront = glm::normalize(fpsFront);
+
+  if (direction == FORWARD)
+    _pos += cameraSpeed * fpsFront;
+  if (direction == BACKWARD)
+    _pos -= cameraSpeed * fpsFront;
+  if (direction == LEFT)
+    _pos += cameraSpeed * glm::normalize(glm::cross(_up, fpsFront));
+  if (direction == RIGHT)
+    _pos -= cameraSpeed * glm::normalize(glm::cross(_up, fpsFront));
+
+  // ROLL
+  /*if (glfwGetKey((GLFWwindow*)wnd, GLFW_KEY_Q) == GLFW_PRESS)
+    _roll += rollSpeed;
+
+  if (glfwGetKey((GLFWwindow*)wnd, GLFW_KEY_E) == GLFW_PRESS)
+    _roll -= rollSpeed;
+
+  if (glfwGetKey((GLFWwindow*)wnd, GLFW_KEY_T) == GLFW_PRESS)
+    _roll = 0.0f;*/
+
+  //UpdateRoll();
+}
+
 void Camera::ProcessMouseMovement(const GLFWwindow* wnd, double xpos, double ypos, bool constrainPitch)
 {
   //static float lastX, lastY;
@@ -135,6 +165,62 @@ void Camera::ProcessMouseMovement(const GLFWwindow* wnd, double xpos, double ypo
   _yaw2 = xoffset;
   _pitch += yoffset;
   _pitch2 = yoffset;
+
+  UpdateVectors();
+}
+
+void Camera::ProcessMouseMovement(double xpos, double ypos, bool constrainPitch /*= true*/)
+{
+  static bool firstMouse = true;
+  if (firstMouse)
+  {
+    _mouseLastX = (float)xpos;
+    _mouseLastY = (float)ypos;
+    firstMouse = false;
+  }
+
+  // clamp the pitch to avoid LookAt flip
+  if (constrainPitch)
+  {
+    if (_pitch > 89.9f)
+    {
+      _pitch = 89.9f;
+      _pitch2 = 89.9f;
+    }
+    else if (_pitch < -89.9f)
+    {
+      _pitch = -89.9f;
+      _pitch2 = -89.9f;
+    }
+  }
+
+  float xoffset = (float)xpos - _mouseLastX;
+  float yoffset = _mouseLastY - (float)ypos; // reversed since y-coordinates range from bottom to top
+  _mouseLastX = (float)xpos;
+  _mouseLastY = (float)ypos;
+
+  xoffset *= _mouseSensitivity;
+  yoffset *= _mouseSensitivity;
+
+  _yaw += xoffset;
+  _yaw2 = xoffset;
+  _pitch += yoffset;
+  _pitch2 = yoffset;
+
+  //xpos *= _mouseSensitivity;
+  //ypos *= _mouseSensitivity;
+
+  //_yaw += xpos;
+  //_pitch += ypos;
+
+  //// make sure that when pitch is out of bounds, screen doesn't get flipped
+  //if (constrainPitch)
+  //{
+  //  if (_pitch > 89.0f)
+  //    _pitch = 89.0f;
+  //  if (_pitch < -89.0f)
+  //    _pitch = -89.0f;
+  //}
 
   UpdateVectors();
 }

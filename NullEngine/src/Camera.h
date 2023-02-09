@@ -34,10 +34,20 @@ public:
     Right
   };
 
+  // for compatibility with LearnOGLSource
+  enum Camera_Movement
+  {
+    FORWARD,
+    BACKWARD,
+    LEFT,
+    RIGHT
+  };
+
   Camera() = default;
   Camera(const Camera& other) = default;
-  Camera(float lastX, float lastY) : _mouseLastX(lastX), _mouseLastY(lastY) {};
-  Camera(glm::vec3& pos, glm::vec3& up, glm::vec3 front, float mouseLastX, float mouseLastY) 
+  Camera(float lastX, float lastY) : _mouseLastX(lastX), _mouseLastY(lastY) {}
+  Camera(const glm::vec3& pos) : _pos(pos) {}
+  Camera(const glm::vec3& pos, const glm::vec3& up, const glm::vec3& front, float mouseLastX, float mouseLastY)
    : _pos(pos), _up(up), _worldUp(up), _front(front), _mouseLastX(mouseLastX), _mouseLastY(mouseLastY) {}
 
 public:
@@ -55,23 +65,30 @@ public:
   //! UNUSED
   float _roll = 0.0f;
 
-  //! up vec     
+  //! up vec
   glm::vec3 _pos = glm::vec3(0.0f, 0.0f, 3.0f);
-  //! 
+  //!
   glm::vec3 _up = glm::vec3(0.0f, 1.0f, 0.0f);
   glm::vec3 _worldUp = glm::vec3(0.0f, 1.0f, 0.0f);;
-  //! 
+  //!
   glm::vec3 _front = glm::vec3(0.0f, 0.0f, -1.0f);
 
   //! Get view matrix
   glm::mat4 GetViewMatrix() { return glm::lookAt(_pos, _pos + _front, _up); }
   //! Process keyboard input
   void ProcessKeyboard(const GLFWwindow* wnd, float dt);
+  void ProcessKeyboard(Camera_Movement direction, float deltaTime);
   //! Process mouse input
   void ProcessMouseMovement(const GLFWwindow* wnd, double xpos, double ypos, bool constrainPitch = true);
+  void ProcessMouseMovement(double xoffset, double yoffset, bool constrainPitch = true);
   void ProcessMouseScroll(float yoffset);
 
+  const glm::vec3& Position() const { return _pos; }
+  const float& Zoom() const { return _fov; }
+
 private:
+  static constexpr float MovementSpeed = 2.5f;
+  static constexpr float RollSpeed = 50.0f;
   //! last mouse positions
   float _mouseLastX = 0.0f;
   float _mouseLastY = 0.0f;

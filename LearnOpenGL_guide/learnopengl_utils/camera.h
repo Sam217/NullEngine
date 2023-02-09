@@ -61,6 +61,9 @@ public:
     updateCameraVectors();
   }
 
+  //const glm::vec3& Position() const { return Position; }
+  //const float& Zoom() const { return Zoom; }
+
   // returns the view matrix calculated using Euler Angles and the LookAt Matrix
   glm::mat4 GetViewMatrix()
   {

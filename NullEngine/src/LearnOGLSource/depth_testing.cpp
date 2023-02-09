@@ -12,9 +12,8 @@
 
 #include <iostream>
 #include "../Engine.h"
-
-
-#include <iostream>
+#include "../Texture.h"
+#include <map>
 
 static void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 static void mouse_callback(GLFWwindow* window, double xpos, double ypos);
@@ -27,7 +26,8 @@ static const unsigned int SCR_WIDTH = 1920;
 static const unsigned int SCR_HEIGHT = 1080;
 
 // camera
-static Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
+//static Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
+static NullEngine::Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
 static float lastX = (float)SCR_WIDTH / 2.0;
 static float lastY = (float)SCR_HEIGHT / 2.0;
 static bool firstMouse = true;
@@ -78,6 +78,8 @@ NULLENGINE_API int Depth_testing_main()
   // -----------------------------
   glEnable(GL_DEPTH_TEST);
   glDepthFunc(GL_LESS); // always pass the depth test (same effect as glDisable(GL_DEPTH_TEST))
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
   // build and compile shaders
   // -------------------------
@@ -141,6 +143,23 @@ NULLENGINE_API int Depth_testing_main()
     -5.0f, -0.5f, -5.0f,  0.0f, 2.0f,
      5.0f, -0.5f, -5.0f,  2.0f, 2.0f
   };
+  float grassQuad[] = {
+    // first triangle
+    -0.5f,  0.5f, 0.0f, 0.0f, 1.0f,
+     0.5f,  0.5f, 0.0f, 1.0f, 1.0f,
+    -0.5f, -0.5f, 0.0f, 0.0f, 0.0f,
+    //second triangle
+     0.5f,  0.5f, 0.0f, 1.0f, 1.0f,
+    -0.5f, -0.5f, 0.0f, 0.0f, 0.0f,
+     0.5f, -0.5f, 0.0f, 1.0f, 0.0f
+  };
+  // vegetation grass positions
+  std::vector<glm::vec3> vegetation;
+  vegetation.push_back(glm::vec3(-1.5f, 0.0f, -0.48f));
+  vegetation.push_back(glm::vec3(1.5f, 0.0f, 0.51f));
+  vegetation.push_back(glm::vec3(0.0f, 0.0f, 0.7f));
+  vegetation.push_back(glm::vec3(-0.3f, 0.0f, -2.3f));
+  vegetation.push_back(glm::vec3(0.5f, 0.0f, -0.6f));
   // cube VAO
   unsigned int cubeVAO, cubeVBO;
   glGenVertexArrays(1, &cubeVAO);
@@ -166,11 +185,29 @@ NULLENGINE_API int Depth_testing_main()
   glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
   glBindVertexArray(0);
 
+  // grass VAO
+  unsigned grassVAO, grassVBO;
+  glGenVertexArrays(1, &grassVAO);
+  glGenBuffers(1, &grassVBO);
+  glBindVertexArray(grassVAO);
+  glBindBuffer(GL_ARRAY_BUFFER, grassVBO);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(grassQuad), &grassQuad, GL_STATIC_DRAW);
+  glEnableVertexAttribArray(0);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+  glEnableVertexAttribArray(1);
+  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+
   // load textures
   // -------------
   std::string root(R"(..\LearnOpenGL_guide\)");
   unsigned int cubeTexture = loadTexture(FileSystem::getPath(root + "resources/textures/marble.jpg").c_str());
   unsigned int floorTexture = loadTexture(FileSystem::getPath(root + "resources/textures/metal.png").c_str());
+  //unsigned int grassTexture2 = loadTexture(FileSystem::getPath(root + "resources/textures/grass.png").c_str());
+
+  NullEngine::Texture grassTexture("grass", true);
+  grassTexture.Load("resources/textures/grass.png", root, GL_CLAMP_TO_EDGE);
+  NullEngine::Texture redWindow("redWin", true);
+  redWindow.Load("resources/textures/blending_transparent_window.png", root, GL_CLAMP_TO_EDGE);
 
   // shader configuration
   // --------------------
@@ -199,7 +236,7 @@ NULLENGINE_API int Depth_testing_main()
     shader.use();
     glm::mat4 model = glm::mat4(1.0f);
     glm::mat4 view = camera.GetViewMatrix();
-    glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+    glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom()), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
     shader.setMat4("view", view);
     shader.setMat4("projection", projection);
     // cubes
@@ -219,6 +256,25 @@ NULLENGINE_API int Depth_testing_main()
     shader.setMat4("model", glm::mat4(1.0f));
     glDrawArrays(GL_TRIANGLES, 0, 6);
     glBindVertexArray(0);
+
+    const auto& windows = vegetation;
+    std::map<float, glm::vec3> sorted;
+    for (int i = 0; i < windows.size(); ++i)
+    {
+      float dist = glm::length(windows[i] - camera.Position());
+      sorted[dist] = windows[i];
+    }
+    glBindVertexArray(grassVAO);
+    //grassTexture.Use();
+    redWindow.Use();
+    //glBindTexture(GL_TEXTURE_2D, grassTexture2);
+    for (std::map<float, glm::vec3>::reverse_iterator it = sorted.rbegin(); it != sorted.rend(); ++it)
+    {
+      model = glm::mat4(1.0f);
+      model = glm::translate(model, it->second);
+      shader.setMat4("model", model);
+      glDrawArrays(GL_TRIANGLES, 0, 6);
+    }
 
     // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
     // -------------------------------------------------------------------------------
@@ -245,13 +301,13 @@ void processInput(GLFWwindow* window)
     glfwSetWindowShouldClose(window, true);
 
   if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-    camera.ProcessKeyboard(FORWARD, deltaTime);
+    camera.ProcessKeyboard((NullEngine::Camera::Camera_Movement)FORWARD, deltaTime);
   if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-    camera.ProcessKeyboard(BACKWARD, deltaTime);
+    camera.ProcessKeyboard((NullEngine::Camera::Camera_Movement)BACKWARD, deltaTime);
   if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-    camera.ProcessKeyboard(LEFT, deltaTime);
+    camera.ProcessKeyboard((NullEngine::Camera::Camera_Movement)LEFT, deltaTime);
   if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-    camera.ProcessKeyboard(RIGHT, deltaTime);
+    camera.ProcessKeyboard((NullEngine::Camera::Camera_Movement)RIGHT, deltaTime);
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
@@ -269,21 +325,27 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
 {
   float xpos = static_cast<float>(xposIn);
   float ypos = static_cast<float>(yposIn);
-
-  if (firstMouse)
+  if (dynamic_cast<NullEngine::Camera*>(&camera))
   {
+    camera.ProcessMouseMovement(xposIn, yposIn);
+  }
+  else
+  {
+    if (firstMouse)
+    {
+      lastX = xpos;
+      lastY = ypos;
+      firstMouse = false;
+    }
+
+    float xoffset = xpos - lastX;
+    float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
+
     lastX = xpos;
     lastY = ypos;
-    firstMouse = false;
+
+    camera.ProcessMouseMovement(xoffset, yoffset);
   }
-
-  float xoffset = xpos - lastX;
-  float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
-
-  lastX = xpos;
-  lastY = ypos;
-
-  camera.ProcessMouseMovement(xoffset, yoffset);
 }
 
 // glfw: whenever the mouse scroll wheel scrolls, this callback is called
