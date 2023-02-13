@@ -81,6 +81,9 @@ NULLENGINE_API int Depth_testing_main()
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+  glEnable(GL_CULL_FACE);
+  glFrontFace(GL_CCW);
+
   // build and compile shaders
   // -------------------------
   std::string shaderRoot = "../LearnOpenGL_guide/shaders/";
@@ -92,11 +95,11 @@ NULLENGINE_API int Depth_testing_main()
   float cubeVertices[] = {
     // positions          // texture Coords
     -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
      0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
      0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
     -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
 
     -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
      0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
@@ -113,11 +116,11 @@ NULLENGINE_API int Depth_testing_main()
     -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
 
      0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+     0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
      0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
      0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-     0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-     0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
      0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+     0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
 
     -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
      0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
@@ -127,31 +130,31 @@ NULLENGINE_API int Depth_testing_main()
     -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
 
     -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
      0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
      0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
     -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
-    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
   };
   float planeVertices[] = {
     // positions          // texture Coords (note we set these higher than 1 (together with GL_REPEAT as texture wrapping mode). this will cause the floor texture to repeat)
      5.0f, -0.5f,  5.0f,  2.0f, 0.0f,
-    -5.0f, -0.5f,  5.0f,  0.0f, 0.0f,
     -5.0f, -0.5f, -5.0f,  0.0f, 2.0f,
+    -5.0f, -0.5f,  5.0f,  0.0f, 0.0f,
 
      5.0f, -0.5f,  5.0f,  2.0f, 0.0f,
+     5.0f, -0.5f, -5.0f,  2.0f, 2.0f,
     -5.0f, -0.5f, -5.0f,  0.0f, 2.0f,
-     5.0f, -0.5f, -5.0f,  2.0f, 2.0f
   };
   float grassQuad[] = {
     // first triangle
-    -0.5f,  0.5f, 0.0f, 0.0f, 1.0f,
-     0.5f,  0.5f, 0.0f, 1.0f, 1.0f,
-    -0.5f, -0.5f, 0.0f, 0.0f, 0.0f,
+    -0.5f,  0.5f, 0.0f,   0.0f, 1.0f,
+    -0.5f, -0.5f, 0.0f,   0.0f, 0.0f,
+     0.5f,  0.5f, 0.0f,   1.0f, 1.0f,
     //second triangle
-     0.5f,  0.5f, 0.0f, 1.0f, 1.0f,
-    -0.5f, -0.5f, 0.0f, 0.0f, 0.0f,
-     0.5f, -0.5f, 0.0f, 1.0f, 0.0f
+     0.5f,  0.5f, 0.0f,   1.0f, 1.0f,
+    -0.5f, -0.5f, 0.0f,   0.0f, 0.0f,
+     0.5f, -0.5f, 0.0f,   1.0f, 0.0f
   };
   // vegetation grass positions
   std::vector<glm::vec3> vegetation;
@@ -308,13 +311,36 @@ void processInput(GLFWwindow* window)
     camera.ProcessKeyboard((NullEngine::Camera::Camera_Movement)LEFT, deltaTime);
   if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
     camera.ProcessKeyboard((NullEngine::Camera::Camera_Movement)RIGHT, deltaTime);
+  if (dynamic_cast<NullEngine::Camera*>(&camera))
+  {
+    if (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS)
+      camera.ProcessKeyboard(NullEngine::Camera::Camera_Movement::UP, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS)
+      camera.ProcessKeyboard(NullEngine::Camera::Camera_Movement::DOWN, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+    {
+      camera._speedBoost = 3.0f;
+      camera._rollBoost = 2.0f;
+    }
+    else
+    {
+      camera._speedBoost = 1.0f;
+      camera._rollBoost = 1.0f;
+    }
+    if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
+      camera.ProcessKeyboard(NullEngine::Camera::Camera_Movement::ROTCCW, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
+      camera.ProcessKeyboard(NullEngine::Camera::Camera_Movement::ROTCW, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_T) == GLFW_PRESS)
+      camera.ProcessKeyboard(NullEngine::Camera::Camera_Movement::ROTRESET, deltaTime);
+  }
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
 // ---------------------------------------------------------------------------------------------
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
-  // make sure the viewport matches the new window dimensions; note that width and 
+  // make sure the viewport matches the new window dimensions; note that width and
   // height will be significantly larger than specified on retina displays.
   glViewport(0, 0, width, height);
 }

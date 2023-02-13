@@ -44,7 +44,10 @@ void Engine::Mouse_callback(GLFWwindow* window, double xpos, double ypos)
 
 void Engine::Scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
-  _engineContext->_camera.ProcessMouseScroll((float)yoffset);
+  if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+    _engineContext->_camera.ProcessMouseScrollZoom((float)yoffset);
+  else
+    _engineContext->_camera.ProcessMouseScroll((float)yoffset);
 }
 
 void Engine::processInput()
@@ -292,6 +295,8 @@ int Engine::Main()
   // this enables Z-buffer so that faces overlap correctly when projected to the screen
   glEnable(GL_DEPTH_TEST);
   glEnable(GL_STENCIL_TEST);
+  glEnable(GL_CULL_FACE);
+  glFrontFace(GL_CCW);
 
   float time = 0.0f, timeLast = 0.0f, deltap = 0.0f;
 

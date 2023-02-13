@@ -35,12 +35,17 @@ public:
   };
 
   // for compatibility with LearnOGLSource
-  enum Camera_Movement
+  enum class Camera_Movement
   {
     FORWARD,
     BACKWARD,
     LEFT,
-    RIGHT
+    RIGHT,
+    UP,
+    DOWN,
+    ROTCW, // clockwise rotation
+    ROTCCW, //  counter-clockwise rotation
+    ROTRESET //  reset rotation
   };
 
   Camera() = default;
@@ -50,28 +55,35 @@ public:
   Camera(const glm::vec3& pos, const glm::vec3& up, const glm::vec3& front, float mouseLastX, float mouseLastY)
    : _pos(pos), _up(up), _worldUp(up), _front(front), _mouseLastX(mouseLastX), _mouseLastY(mouseLastY) {}
 
+private:
+  static constexpr float RollSpeed = 50.0f;
+
 public:
   //! Mouse sensitivity
   float _mouseSensitivity = SENSITIVITY;
   //! FOV
   float _fov = ZOOM;
   //! Euler angles
-  //! pitch
+  //! pitch (theta)
   float _pitch = PITCH;
   float _pitch2 = PITCH;
-  //! yaw
+  //! yaw (phi)
   float _yaw = YAW;
   float _yaw2 = YAW;
   //! UNUSED
   float _roll = 0.0f;
+  float _speedBoost = 3.0f;
+  float _rollBoost = 2.0f;
 
-  //! up vec
+  //! Camera position in world space
   glm::vec3 _pos = glm::vec3(0.0f, 0.0f, 3.0f);
-  //!
+  //! Direction of "UP" in camera space?
   glm::vec3 _up = glm::vec3(0.0f, 1.0f, 0.0f);
+  //! Direction of "UP" in world space
   glm::vec3 _worldUp = glm::vec3(0.0f, 1.0f, 0.0f);;
-  //!
+  //! Direction of camera sight in camera space! -> z is negative because we are facing into the screen (OpenGL system is right-handed, +z aiming from the screen)
   glm::vec3 _front = glm::vec3(0.0f, 0.0f, -1.0f);
+  glm::vec3 _right = glm::vec3(1.0f, 0.0f, 0.0f);
 
   //! Get view matrix
   glm::mat4 GetViewMatrix() { return glm::lookAt(_pos, _pos + _front, _up); }
@@ -82,13 +94,12 @@ public:
   void ProcessMouseMovement(const GLFWwindow* wnd, double xpos, double ypos, bool constrainPitch = true);
   void ProcessMouseMovement(double xoffset, double yoffset, bool constrainPitch = true);
   void ProcessMouseScroll(float yoffset);
-
+  void ProcessMouseScrollZoom(float yoffset);
   const glm::vec3& Position() const { return _pos; }
   const float& Zoom() const { return _fov; }
 
 private:
-  static constexpr float MovementSpeed = 2.5f;
-  static constexpr float RollSpeed = 50.0f;
+  float _movementSpeed = 2.5f;
   //! last mouse positions
   float _mouseLastX = 0.0f;
   float _mouseLastY = 0.0f;

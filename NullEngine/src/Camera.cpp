@@ -31,7 +31,7 @@ glm::mat4 myLookAt(NullEngine::Camera& c)
 void Camera::ProcessKeyboard(const GLFWwindow* wnd, float dt)
 {
   // camera control
-  float cameraSpeed = MovementSpeed * dt;
+  float cameraSpeed = _movementSpeed * dt;
   float rollSpeed = RollSpeed * dt;
 
   //glm::vec3 fpsFront(_front.x, 0.0f, _front.z);
@@ -40,58 +40,35 @@ void Camera::ProcessKeyboard(const GLFWwindow* wnd, float dt)
 
   if (glfwGetKey((GLFWwindow*)wnd, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
   {
-    cameraSpeed *= 3.0f;
-    rollSpeed *= 2.0f;
+    cameraSpeed *= _speedBoost;
+    rollSpeed *= _rollBoost;
   }
 
   if (glfwGetKey((GLFWwindow*)wnd, GLFW_KEY_W) == GLFW_PRESS)
-  {
-    //_camera._pos += cameraSpeed * _camera._front;
     _pos += cameraSpeed * fpsFront;
-  }
-
   if (glfwGetKey((GLFWwindow*)wnd, GLFW_KEY_S) == GLFW_PRESS)
-  {
-    //_camera._pos -= cameraSpeed * _camera._front;
     _pos -= cameraSpeed * fpsFront;
-  }
-
   if (glfwGetKey((GLFWwindow*)wnd, GLFW_KEY_R) == GLFW_PRESS)
-  {
     _pos += cameraSpeed * _up;
-  }
-
   if (glfwGetKey((GLFWwindow*)wnd, GLFW_KEY_F) == GLFW_PRESS)
-  {
     _pos -= cameraSpeed * _up;
-  }
-
   if (glfwGetKey((GLFWwindow*)wnd, GLFW_KEY_A) == GLFW_PRESS)
-  {
-    //_camera._pos += cameraSpeed * glm::normalize(glm::cross(_camera._up, _camera._front));
-    _pos += cameraSpeed * glm::normalize(glm::cross(_up, fpsFront));
-  }
-
+    _pos -= cameraSpeed * _right;
   if (glfwGetKey((GLFWwindow*)wnd, GLFW_KEY_D) == GLFW_PRESS)
-  {
-    //_camera._pos -= cameraSpeed * glm::normalize(glm::cross(_camera._up, _camera._front));
-    _pos -= cameraSpeed * glm::normalize(glm::cross(_up, fpsFront));
-  }
+    _pos += cameraSpeed * _right;
 
   // ROLL
   if (glfwGetKey((GLFWwindow*)wnd, GLFW_KEY_Q) == GLFW_PRESS)
-  {
-    _roll += rollSpeed;
-  }
+    _roll = -rollSpeed;
 
   if (glfwGetKey((GLFWwindow*)wnd, GLFW_KEY_E) == GLFW_PRESS)
-  {
-    _roll -= rollSpeed;
-  }
+    _roll = rollSpeed;
 
   if (glfwGetKey((GLFWwindow*)wnd, GLFW_KEY_T) == GLFW_PRESS)
   {
     _roll = 0.0f;
+    _worldUp = glm::vec3(0.0f, 1.0f, 0.0f);
+    _up = _worldUp;
   }
 
   UpdateRoll();
@@ -99,32 +76,39 @@ void Camera::ProcessKeyboard(const GLFWwindow* wnd, float dt)
 
 void Camera::ProcessKeyboard(Camera_Movement direction, float deltaTime)
 {
-  const float cameraSpeed = MovementSpeed * deltaTime;
+  const float cameraSpeed = _movementSpeed * deltaTime;
   const float rollSpeed = RollSpeed * deltaTime;
+
+  // ROLL
+  if (direction == Camera_Movement::ROTCW)
+    _roll = rollSpeed * _rollBoost;
+
+  if (direction == Camera_Movement::ROTCCW)
+    _roll = -rollSpeed * _rollBoost;
+
+  if (direction == Camera_Movement::ROTRESET)
+  {
+    _worldUp = glm::vec3(0.0f, 1.0f, 0.0f);
+    _up = _worldUp;
+    _roll = 0.0f;
+  }
+  UpdateRoll();
 
   glm::vec3 fpsFront(_front);
   fpsFront = glm::normalize(fpsFront);
 
-  if (direction == FORWARD)
-    _pos += cameraSpeed * fpsFront;
-  if (direction == BACKWARD)
-    _pos -= cameraSpeed * fpsFront;
-  if (direction == LEFT)
-    _pos += cameraSpeed * glm::normalize(glm::cross(_up, fpsFront));
-  if (direction == RIGHT)
-    _pos -= cameraSpeed * glm::normalize(glm::cross(_up, fpsFront));
-
-  // ROLL
-  /*if (glfwGetKey((GLFWwindow*)wnd, GLFW_KEY_Q) == GLFW_PRESS)
-    _roll += rollSpeed;
-
-  if (glfwGetKey((GLFWwindow*)wnd, GLFW_KEY_E) == GLFW_PRESS)
-    _roll -= rollSpeed;
-
-  if (glfwGetKey((GLFWwindow*)wnd, GLFW_KEY_T) == GLFW_PRESS)
-    _roll = 0.0f;*/
-
-  //UpdateRoll();
+  if (direction == Camera_Movement::FORWARD)
+    _pos += cameraSpeed * _speedBoost * fpsFront;
+  if (direction == Camera_Movement::BACKWARD)
+    _pos -= cameraSpeed * _speedBoost * fpsFront;
+  if (direction == Camera_Movement::LEFT)
+    _pos -= cameraSpeed * _speedBoost * _right;
+  if (direction == Camera_Movement::RIGHT)
+    _pos += cameraSpeed * _speedBoost * _right;
+  if (direction == Camera_Movement::UP)
+    _pos += cameraSpeed * _speedBoost * _up;
+  if (direction == Camera_Movement::DOWN)
+    _pos -= cameraSpeed * _speedBoost * _up;
 }
 
 void Camera::ProcessMouseMovement(const GLFWwindow* wnd, double xpos, double ypos, bool constrainPitch)
@@ -185,12 +169,12 @@ void Camera::ProcessMouseMovement(double xpos, double ypos, bool constrainPitch 
     if (_pitch > 89.9f)
     {
       _pitch = 89.9f;
-      _pitch2 = 89.9f;
+      //_pitch2 = 89.9f;
     }
     else if (_pitch < -89.9f)
     {
       _pitch = -89.9f;
-      _pitch2 = -89.9f;
+      //_pitch2 = -89.9f;
     }
   }
 
@@ -207,25 +191,21 @@ void Camera::ProcessMouseMovement(double xpos, double ypos, bool constrainPitch 
   _pitch += yoffset;
   _pitch2 = yoffset;
 
-  //xpos *= _mouseSensitivity;
-  //ypos *= _mouseSensitivity;
-
-  //_yaw += xpos;
-  //_pitch += ypos;
-
-  //// make sure that when pitch is out of bounds, screen doesn't get flipped
-  //if (constrainPitch)
-  //{
-  //  if (_pitch > 89.0f)
-  //    _pitch = 89.0f;
-  //  if (_pitch < -89.0f)
-  //    _pitch = -89.0f;
-  //}
-
   UpdateVectors();
 }
 
 void Camera::ProcessMouseScroll(float yoffset)
+{
+  _movementSpeed += (float)yoffset;
+
+  constexpr float MaxSpeed = 100.0f;
+  if (_movementSpeed > MaxSpeed)
+    _movementSpeed = MaxSpeed;
+  else if(_movementSpeed < 0.0f)
+    _movementSpeed = 0.0f;
+}
+
+void Camera::ProcessMouseScrollZoom(float yoffset)
 {
   _fov -= (float)yoffset;
   if (_fov < FOVmin)
@@ -247,22 +227,29 @@ void Camera::UpdateVectors()
   rotYaw = glm::rotate(rotYaw, glm::radians(-_yaw2), _up);
   direction = glm::vec3(rotYaw * glm::vec4(_front, 0.0f));
 
-  glm::vec3 camRight = glm::normalize(glm::cross(direction, _up));
+  _right = glm::normalize(glm::cross(direction, _worldUp));
 
   glm::mat4 rotPitch(1.0f);
-  rotPitch = glm::rotate(rotPitch, glm::radians(_pitch2), camRight);
+  rotPitch = glm::rotate(rotPitch, glm::radians(_pitch2), _right);
   direction = glm::vec3(rotPitch * glm::vec4(direction, 0.0f));
 
   _front = glm::normalize(direction);
-  _up = glm::normalize(glm::cross(camRight, _front));
+  _up = glm::normalize(glm::cross(_right, _front));
 }
 
 void Camera::UpdateRoll()
 {
   // roll
+  if (_roll == 0.0f)
+    return;
+
   glm::mat4 rot(1.0f);
   rot = glm::rotate(rot, glm::radians(_roll), _front);
-  _up = glm::normalize(glm::vec3(rot * glm::vec4(_worldUp, 0.0f)));
+  //_worldUp = glm::normalize(glm::vec3(rot * glm::vec4(_worldUp, 0.0f)));
+  _up = glm::normalize(glm::vec3(rot * glm::vec4(_up, 0.0f)));
+  _worldUp = _up;
+  _roll = 0.0f;
+  UpdateVectors();
 }
 
 } // namespace NullEngine
