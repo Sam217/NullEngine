@@ -36,6 +36,9 @@ static bool firstMouse = true;
 static float deltaTime = 0.0f;
 static float lastFrame = 0.0f;
 
+static Shader* currentShader;
+static Shader* effects[8];
+
 NULLENGINE_API int Depth_testing_main()
 {
   // glfw: initialize and configure
@@ -89,6 +92,203 @@ NULLENGINE_API int Depth_testing_main()
   std::string shaderRoot = "../LearnOpenGL_guide/shaders/";
   //Shader shader("1.1.depth_testing.vs", "1.1.depth_testing.fs");
   Shader shader((shaderRoot + "1.1.depth_testing.vs").c_str(), (shaderRoot + "1.1.depth_testing.fs").c_str());
+
+  std::string simpleVScode = R"(
+    #version 330 core
+    layout (location = 0) in vec2 aPos;
+    layout (location = 1) in vec2 aTexCoords;
+
+    out vec2 TexCoords;
+
+    void main()
+    {
+      gl_Position = vec4(aPos.x, aPos.y, 0.0, 1.0);
+      TexCoords = aTexCoords;
+    })";
+
+  std::string simpleFScode = R"(
+    #version 330 core
+    out vec4 FragColor;
+    in vec2 TexCoords;
+    uniform sampler2D screenTexture;
+
+    void main()
+    {
+      FragColor = texture(screenTexture, TexCoords);
+    })";
+
+  std::string simpleFSnegative = R"(
+    #version 330 core
+    out vec4 FragColor;
+    in vec2 TexCoords;
+    uniform sampler2D screenTexture;
+
+    void main()
+    {
+      FragColor = vec4(vec3(1.0f - texture(screenTexture, TexCoords)), 1.0);
+    })";
+
+  std::string simpleFSgscale = R"(
+    #version 330 core
+    out vec4 FragColor;
+    in vec2 TexCoords;
+    uniform sampler2D screenTexture;
+
+    void main()
+    {
+      vec3 texColor = texture(screenTexture, TexCoords).rgb;
+      float avg = (texColor.r + texColor.g + texColor.b) / 3.0f;
+      FragColor = vec4(avg, avg, avg, 1.0);
+    })";
+
+  std::string simpleFSgscaleW = R"(
+    #version 330 core
+    out vec4 FragColor;
+    in vec2 TexCoords;
+    uniform sampler2D screenTexture;
+
+    void main()
+    {
+      FragColor = texture(screenTexture, TexCoords);
+      float avg = 0.2126 * FragColor.r + 0.7152 * FragColor.g + 0.0722 * FragColor.b;
+      FragColor = vec4(avg, avg, avg, 1.0);
+    })";
+
+  std::string fsSharpen = R"(
+    #version 330 core
+    out vec4 FragColor;
+    in vec2 TexCoords;
+    uniform sampler2D screenTexture;
+
+    const float offset = 1.0 / 300.0;
+
+    void main()
+    {
+      vec2 offsets[9] = vec2[](
+          vec2(-offset,  offset), // top-left
+          vec2( 0.0f,    offset), // top-center
+          vec2( offset,  offset), // top-right
+          vec2(-offset,  0.0f),   // center-left
+          vec2( 0.0f,    0.0f),   // center-center
+          vec2( offset,  0.0f),   // center-right
+          vec2(-offset, -offset), // bottom-left
+          vec2( 0.0f,   -offset), // bottom-center
+          vec2( offset, -offset)  // bottom-right
+      );
+
+      float kernel[9] = float[](
+          -1, -1, -1,
+          -1,  9, -1,
+          -1, -1, -1
+      );
+
+      vec3 sampleTex[9];
+      for(int i = 0; i < 9; i++)
+      {
+          sampleTex[i] = vec3(texture(screenTexture, TexCoords.st + offsets[i]));
+      }
+      vec3 col = vec3(0.0);
+      for(int i = 0; i < 9; i++)
+          col += sampleTex[i] * kernel[i];
+
+      FragColor = vec4(col, 1.0);
+      })";
+
+  std::string fsBlur = R"(
+    #version 330 core
+    out vec4 FragColor;
+    in vec2 TexCoords;
+    uniform sampler2D screenTexture;
+
+    const float offset = 1.0 / 300.0;
+
+    void main()
+    {
+      vec2 offsets[9] = vec2[](
+          vec2(-offset,  offset), // top-left
+          vec2( 0.0f,    offset), // top-center
+          vec2( offset,  offset), // top-right
+          vec2(-offset,  0.0f),   // center-left
+          vec2( 0.0f,    0.0f),   // center-center
+          vec2( offset,  0.0f),   // center-right
+          vec2(-offset, -offset), // bottom-left
+          vec2( 0.0f,   -offset), // bottom-center
+          vec2( offset, -offset)  // bottom-right
+      );
+
+      float kernel[9] = float[](
+        1.0 / 16, 2.0 / 16, 1.0 / 16,
+        2.0 / 16, 4.0 / 16, 2.0 / 16,
+        1.0 / 16, 2.0 / 16, 1.0 / 16
+      );
+
+      vec3 sampleTex[9];
+      for(int i = 0; i < 9; i++)
+      {
+          sampleTex[i] = vec3(texture(screenTexture, TexCoords.st + offsets[i]));
+      }
+      vec3 col = vec3(0.0);
+      for(int i = 0; i < 9; i++)
+          col += sampleTex[i] * kernel[i];
+
+      FragColor = vec4(col, 1.0);
+      })";
+
+  std::string fsEdge = R"(
+    #version 330 core
+    out vec4 FragColor;
+    in vec2 TexCoords;
+    uniform sampler2D screenTexture;
+
+    const float offset = 1.0 / 300.0;
+
+    void main()
+    {
+      vec2 offsets[9] = vec2[](
+          vec2(-offset,  offset), // top-left
+          vec2( 0.0f,    offset), // top-center
+          vec2( offset,  offset), // top-right
+          vec2(-offset,  0.0f),   // center-left
+          vec2( 0.0f,    0.0f),   // center-center
+          vec2( offset,  0.0f),   // center-right
+          vec2(-offset, -offset), // bottom-left
+          vec2( 0.0f,   -offset), // bottom-center
+          vec2( offset, -offset)  // bottom-right
+      );
+
+      float kernel[9] = float[](
+           1,  1,  1,
+           1, -8,  1,
+           1,  1,  1
+      );
+
+      vec3 sampleTex[9];
+      for(int i = 0; i < 9; i++)
+      {
+          sampleTex[i] = vec3(texture(screenTexture, TexCoords.st + offsets[i]));
+      }
+      vec3 col = vec3(0.0);
+      for(int i = 0; i < 9; i++)
+          col += sampleTex[i] * kernel[i];
+
+      FragColor = vec4(col, 1.0);
+      })";
+
+  Shader simpleShader(simpleVScode, simpleFScode);
+  Shader effectNegative(simpleVScode, simpleFSnegative);
+  Shader effectGreyScale(simpleVScode, simpleFSgscale);
+  Shader effectGreyScaleWeighted(simpleVScode, simpleFSgscaleW);
+  Shader effectSharpen(simpleVScode, fsSharpen);
+  Shader effectBlur(simpleVScode, fsBlur);
+  Shader effectEdge(simpleVScode, fsEdge);
+
+  effects[0] = &simpleShader;
+  effects[1] = &effectNegative;
+  effects[2] = &effectGreyScale;
+  effects[3] = &effectGreyScaleWeighted;
+  effects[4] = &effectSharpen;
+  effects[5] = &effectBlur;
+  effects[6] = &effectEdge;
 
   // set up vertex data (and buffer(s)) and configure vertex attributes
   // ------------------------------------------------------------------
@@ -156,6 +356,27 @@ NULLENGINE_API int Depth_testing_main()
     -0.5f, -0.5f, 0.0f,   0.0f, 0.0f,
      0.5f, -0.5f, 0.0f,   1.0f, 0.0f
   };
+  // Render target texture quad
+  //float quadVertices[] = {
+  //  // positions   // texCoords
+  //  -1.6f,  0.9f,  0.0f, 1.0f,
+  //  -1.6f, -0.9f,  0.0f, 0.0f,
+  //   1.6f, -0.9f,  1.0f, 0.0f,
+
+  //  -1.6f,  0.9f,  0.0f, 1.0f,
+  //   1.6f, -0.9f,  1.0f, 0.0f,
+  //   1.6f,  0.9f,  1.0f, 1.0f
+  //};
+  float quadVertices[] = {
+    // positions   // texCoords
+    -1.0f,  1.0f,  0.0f, 1.0f,
+    -1.0f, -1.0f,  0.0f, 0.0f,
+     1.0f, -1.0f,  1.0f, 0.0f,
+
+    -1.0f,  1.0f,  0.0f, 1.0f,
+     1.0f, -1.0f,  1.0f, 0.0f,
+     1.0f,  1.0f,  1.0f, 1.0f
+  };
   // vegetation grass positions
   std::vector<glm::vec3> vegetation;
   vegetation.push_back(glm::vec3(-1.5f, 0.0f, -0.48f));
@@ -200,10 +421,54 @@ NULLENGINE_API int Depth_testing_main()
   glEnableVertexAttribArray(1);
   glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
 
+  // Render target texture quad VAO
+  unsigned rtQuadVAO, rtQuadVBO;
+  glGenVertexArrays(1, &rtQuadVAO);
+  glGenBuffers(1, &rtQuadVBO);
+  glBindVertexArray(rtQuadVAO);
+  glBindBuffer(GL_ARRAY_BUFFER, rtQuadVBO);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
+  glEnableVertexAttribArray(0);
+  glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+  glEnableVertexAttribArray(1);
+  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+
+  // Render to texture
+  unsigned frameBuffer;
+  glGenFramebuffers(1, &frameBuffer);
+  glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
+
+  unsigned textureColorBuffer;
+  glGenTextures(1, &textureColorBuffer);
+  glBindTexture(GL_TEXTURE_2D, textureColorBuffer);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glBindTexture(GL_TEXTURE_2D, 0);
+
+  // attach the texture as a color attachment to the framebuffer
+  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureColorBuffer, 0);
+
+  // create render buffer object to store depth & stencil buffers for the new framebuffer render target
+  unsigned rbo;
+  glGenRenderbuffers(1, &rbo);
+  glBindRenderbuffer(GL_RENDERBUFFER, rbo);
+  glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, SCR_WIDTH, SCR_HEIGHT);
+  glBindRenderbuffer(GL_RENDERBUFFER, 0);
+
+  // attach
+  glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rbo);
+
+  if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+    std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+
   // load textures
   // -------------
   std::string root(R"(..\LearnOpenGL_guide\)");
-  unsigned int cubeTexture = loadTexture(FileSystem::getPath(root + "resources/textures/marble.jpg").c_str());
+  //unsigned int cubeTexture = loadTexture(FileSystem::getPath(root + "resources/textures/marble.jpg").c_str());
+  unsigned int cubeTexture = loadTexture(FileSystem::getPath(root + "../Resources/container.jpg").c_str());
   unsigned int floorTexture = loadTexture(FileSystem::getPath(root + "resources/textures/metal.png").c_str());
   //unsigned int grassTexture2 = loadTexture(FileSystem::getPath(root + "resources/textures/grass.png").c_str());
 
@@ -217,6 +482,8 @@ NULLENGINE_API int Depth_testing_main()
   shader.use();
   shader.setInt("texture1", 0);
 
+  //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+  currentShader = &simpleShader;
   // render loop
   // -----------
   while (!glfwWindowShouldClose(window))
@@ -233,8 +500,11 @@ NULLENGINE_API int Depth_testing_main()
 
     // render
     // ------
+    // first pass
+    glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
     glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glEnable(GL_DEPTH_TEST);
 
     shader.use();
     glm::mat4 model = glm::mat4(1.0f);
@@ -260,24 +530,35 @@ NULLENGINE_API int Depth_testing_main()
     glDrawArrays(GL_TRIANGLES, 0, 6);
     glBindVertexArray(0);
 
-    const auto& windows = vegetation;
-    std::map<float, glm::vec3> sorted;
-    for (int i = 0; i < windows.size(); ++i)
-    {
-      float dist = glm::length(windows[i] - camera.Position());
-      sorted[dist] = windows[i];
-    }
-    glBindVertexArray(grassVAO);
-    //grassTexture.Use();
-    redWindow.Use();
-    //glBindTexture(GL_TEXTURE_2D, grassTexture2);
-    for (std::map<float, glm::vec3>::reverse_iterator it = sorted.rbegin(); it != sorted.rend(); ++it)
-    {
-      model = glm::mat4(1.0f);
-      model = glm::translate(model, it->second);
-      shader.setMat4("model", model);
-      glDrawArrays(GL_TRIANGLES, 0, 6);
-    }
+    //const auto& windows = vegetation;
+    //std::map<float, glm::vec3> sorted;
+    //for (int i = 0; i < windows.size(); ++i)
+    //{
+    //  float dist = glm::length(windows[i] - camera.Position());
+    //  sorted[dist] = windows[i];
+    //}
+    //glBindVertexArray(grassVAO);
+    ////grassTexture.Use();
+    //redWindow.Use();
+    ////glBindTexture(GL_TEXTURE_2D, grassTexture2);
+    //for (std::map<float, glm::vec3>::reverse_iterator it = sorted.rbegin(); it != sorted.rend(); ++it)
+    //{
+    //  model = glm::mat4(1.0f);
+    //  model = glm::translate(model, it->second);
+    //  shader.setMat4("model", model);
+    //  glDrawArrays(GL_TRIANGLES, 0, 6);
+    //}
+
+    // second pass
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    currentShader->use();
+    glBindVertexArray(rtQuadVAO);
+    glDisable(GL_DEPTH_TEST);
+    glBindTexture(GL_TEXTURE_2D, textureColorBuffer);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
 
     // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
     // -------------------------------------------------------------------------------
@@ -333,6 +614,23 @@ void processInput(GLFWwindow* window)
       camera.ProcessKeyboard(NullEngine::Camera::Camera_Movement::ROTCW, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_T) == GLFW_PRESS)
       camera.ProcessKeyboard(NullEngine::Camera::Camera_Movement::ROTRESET, deltaTime);
+
+    if (glfwGetKey(window, GLFW_KEY_KP_0) == GLFW_PRESS && effects[0])
+      currentShader = effects[0];
+    if (glfwGetKey(window, GLFW_KEY_KP_1) == GLFW_PRESS && effects[1])
+      currentShader = effects[1];
+    if (glfwGetKey(window, GLFW_KEY_KP_2) == GLFW_PRESS && effects[2])
+      currentShader = effects[2];
+    if (glfwGetKey(window, GLFW_KEY_KP_3) == GLFW_PRESS && effects[3])
+      currentShader = effects[3];
+    if (glfwGetKey(window, GLFW_KEY_KP_4) == GLFW_PRESS && effects[4])
+      currentShader = effects[4];
+    if (glfwGetKey(window, GLFW_KEY_KP_5) == GLFW_PRESS && effects[5])
+      currentShader = effects[5];
+    if (glfwGetKey(window, GLFW_KEY_KP_6) == GLFW_PRESS && effects[6])
+      currentShader = effects[6];
+    if (glfwGetKey(window, GLFW_KEY_KP_7) == GLFW_PRESS && effects[7])
+      currentShader = effects[7];
   }
 }
 
