@@ -127,6 +127,23 @@ void Engine::processInput()
     lastPause = currentFrame;
   }
 
+  if (glfwGetKey(_window, GLFW_KEY_KP_0) == GLFW_PRESS && _effects[0])
+    _currentEffect = _effects[0].get();
+  if (glfwGetKey(_window, GLFW_KEY_KP_1) == GLFW_PRESS && _effects[1])
+    _currentEffect = _effects[1].get();
+  if (glfwGetKey(_window, GLFW_KEY_KP_2) == GLFW_PRESS && _effects[2])
+    _currentEffect = _effects[2].get();
+  if (glfwGetKey(_window, GLFW_KEY_KP_3) == GLFW_PRESS && _effects[3])
+    _currentEffect = _effects[3].get();
+  if (glfwGetKey(_window, GLFW_KEY_KP_4) == GLFW_PRESS && _effects[4])
+    _currentEffect = _effects[4].get();
+  if (glfwGetKey(_window, GLFW_KEY_KP_5) == GLFW_PRESS && _effects[5])
+    _currentEffect = _effects[5].get();
+  if (glfwGetKey(_window, GLFW_KEY_KP_6) == GLFW_PRESS && _effects[6])
+    _currentEffect = _effects[6].get();
+  if (glfwGetKey(_window, GLFW_KEY_KP_7) == GLFW_PRESS && _effects[7])
+    _currentEffect = _effects[7].get();
+
   // camera
   _camera.ProcessKeyboard((GLFWwindow*)_window, deltaTime);
 }
@@ -231,6 +248,100 @@ int Engine::Main()
 
   glBindVertexArray(0);
 
+  // Render to texture
+  unsigned screenQuadVAO, screenQuadVBO;
+  glGenVertexArrays(1, &screenQuadVAO);
+  glGenBuffers(1, &screenQuadVBO);
+  glBindVertexArray(screenQuadVAO);
+  glBindBuffer(GL_ARRAY_BUFFER, screenQuadVBO);
+
+  auto& quadVertices = _vertices[7];
+  glBufferData(GL_ARRAY_BUFFER, quadVertices.size() * sizeof(float), quadVertices.data(), GL_STATIC_DRAW);
+  glEnableVertexAttribArray(0);
+  glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+  glEnableVertexAttribArray(1);
+  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+
+  unsigned framebuf;
+  glGenFramebuffers(1, &framebuf);
+  glBindFramebuffer(GL_FRAMEBUFFER, framebuf);
+
+  const GLsizei Width = _width, Height = _height;
+  unsigned textureColor;
+  glGenTextures(1, &textureColor);
+  glBindTexture(GL_TEXTURE_2D, textureColor);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, Width, Height, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  /*glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);*/
+  glBindTexture(GL_TEXTURE_2D, 0);
+
+  // attach the color texture to the framebuffer
+  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureColor, 0);
+
+  // Create render buffer object
+  unsigned renderBuf;
+  glGenRenderbuffers(1, &renderBuf);
+  glBindRenderbuffer(GL_RENDERBUFFER, renderBuf);
+  glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, Width, Height);
+  glBindRenderbuffer(GL_RENDERBUFFER, 0);
+
+  // attach render buffer to framebuffer
+  glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, renderBuf);
+
+  // framebuffer must be complete
+  if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+  {
+    std::cout << "NULLENGINE::ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
+  }
+
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+  // Render to mirror texture
+  unsigned mirrorQuadVAO, mirrorQuadVBO;
+  glGenVertexArrays(1, &mirrorQuadVAO);
+  glGenBuffers(1, &mirrorQuadVBO);
+  glBindVertexArray(mirrorQuadVAO);
+  glBindBuffer(GL_ARRAY_BUFFER, mirrorQuadVBO);
+
+  auto& mirrorVertices = _vertices[8];
+  glBufferData(GL_ARRAY_BUFFER, mirrorVertices.size() * sizeof(float), mirrorVertices.data(), GL_STATIC_DRAW);
+  glEnableVertexAttribArray(0);
+  glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+  glEnableVertexAttribArray(1);
+  glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+
+  unsigned mirrorBuf;
+  glGenFramebuffers(1, &mirrorBuf);
+  glBindFramebuffer(GL_FRAMEBUFFER, mirrorBuf);
+
+  const GLsizei mirrorWidth = _width, mirrorHeight = _height;
+  unsigned texMirror;
+  glGenTextures(1, &texMirror);
+  glBindTexture(GL_TEXTURE_2D, texMirror);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, mirrorWidth, mirrorHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glBindTexture(GL_TEXTURE_2D, 0);
+
+  glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texMirror, 0);
+
+  unsigned mirrorRenderBuf;
+  glGenRenderbuffers(1, &mirrorRenderBuf);
+  glBindRenderbuffer(GL_RENDERBUFFER, mirrorRenderBuf);
+  glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, mirrorWidth, mirrorHeight);
+  glBindRenderbuffer(GL_RENDERBUFFER, 0);
+
+  glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, mirrorRenderBuf);
+
+  if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+  {
+    std::cout << "NULLENGINE::ERROR::FRAMEBUFFER:: Mirror framebuffer not complete!" << std::endl;
+  }
+
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
   //-------------------------------
 
   // Wireframe or normal drawing mode
@@ -302,64 +413,64 @@ int Engine::Main()
 
   // Materials
   Material emerald = {
-                      glm::vec3(0.0215f, 0.1745, 0.0215),
-                      glm::vec3(0.07568, 0.61424, 0.07568),
-                      glm::vec3(0.633, 0.727811, 0.633),
-                      0.6 * 128
+                      glm::vec3(0.0215f, 0.1745f, 0.0215f),
+                      glm::vec3(0.07568f, 0.61424f, 0.07568f),
+                      glm::vec3(0.633f, 0.727811f, 0.633f),
+                      0.6f * 128
   };
   Material jade = {
-                      glm::vec3(0.135, 0.2225,	0.1575),
-                      glm::vec3(0.54,	0.89,	0.63),
-                      glm::vec3(0.316228,	0.316228,	0.316228),
-                      0.1 * 128
+                      glm::vec3(0.135f, 0.2225f,	0.1575f),
+                      glm::vec3(0.54f,	0.89f,	0.63f),
+                      glm::vec3(0.316228f,	0.316228f,	0.316228f),
+                      0.1f * 128
   };
   Material obsidian = {
-                      glm::vec3(0.05375,	0.05,	0.06625),
-                      glm::vec3(0.18275,	0.17,	0.22525),
-                      glm::vec3(0.332741,	0.328634,	0.346435),
-                      0.3 * 128
+                      glm::vec3(0.05375f,	0.05f,	0.06625f),
+                      glm::vec3(0.18275f,	0.17f,	0.22525f),
+                      glm::vec3(0.332741f,	0.328634f,	0.346435f),
+                      0.3f * 128
   };
   Material pearl = {
-                      glm::vec3(0.25,	0.20725, 0.20725),
-                      glm::vec3(1,	0.829,	0.829),
-                      glm::vec3(0.296648,	0.296648,	0.296648),
-                      0.088 * 128
+                      glm::vec3(0.25f,	0.20725f, 0.20725f),
+                      glm::vec3(1.0f,	0.829f,	0.829f),
+                      glm::vec3(0.296648f,	0.296648f,	0.296648f),
+                      0.088f * 128
   };
   Material copper = {
-                      glm::vec3(0.19125,	0.0735,	0.0225),
-                      glm::vec3(0.7038,	0.27048,	0.0828),
-                      glm::vec3(0.256777,	0.137622,	0.086014),
-                      0.1 * 128
+                      glm::vec3(0.19125f,	0.0735f,	0.0225f),
+                      glm::vec3(0.7038f,	0.27048f,	0.0828f),
+                      glm::vec3(0.256777f,	0.137622f,	0.086014f),
+                      0.1f * 128
   };
   Material gold = {
-                      glm::vec3(0.24725, 0.1995, 0.0745),
-                      glm::vec3(0.75164, 0.60648, 0.22648),
-                      glm::vec3(0.628281,	0.555802,	0.366065),
-                      0.4 * 128
+                      glm::vec3(0.24725f, 0.1995f, 0.0745f),
+                      glm::vec3(0.75164f, 0.60648f, 0.22648f),
+                      glm::vec3(0.628281f,	0.555802f,	0.366065f),
+                      0.4f * 128
   };
   Material chrome = {
-                      glm::vec3(0.25,	0.25,	0.25),
-                      glm::vec3(0.4, 0.4,	0.4),
-                      glm::vec3(0.774597,	0.774597,	0.774597),
-                      0.6 * 128
+                      glm::vec3(0.25f,	0.25f,	0.25f),
+                      glm::vec3(0.4f, 0.4f,	0.4f),
+                      glm::vec3(0.774597f,	0.774597f,	0.774597f),
+                      0.6f * 128
   };
   Material brass = {
-                      glm::vec3(0.329412,	0.223529,	0.027451),
-                      glm::vec3(0.780392,	0.568627,	0.113725),
-                      glm::vec3(0.992157,	0.941176,	0.807843),
-                      0.21794872 * 128
+                      glm::vec3(0.329412f,	0.223529f,	0.027451f),
+                      glm::vec3(0.780392f,	0.568627f,	0.113725f),
+                      glm::vec3(0.992157f,	0.941176f,	0.807843f),
+                      0.21794872f * 128
   };
   Material bronze = {
-                      glm::vec3(0.2125,	0.1275,	0.054),
-                      glm::vec3(0.714,	0.4284,	0.18144),
-                      glm::vec3(0.393548,	0.271906,	0.166721),
-                      0.2 * 128
+                      glm::vec3(0.2125f,	0.1275f,	0.054f),
+                      glm::vec3(0.714f,	0.4284f,	0.18144f),
+                      glm::vec3(0.393548f,	0.271906f,	0.166721f),
+                      0.2f * 128
   };
   Material cyanPlastic = {
-                      glm::vec3(0.0,	0.1,	0.06),
-                      glm::vec3(0.0,	0.50980392,	0.50980392),
-                      glm::vec3(0.50196078,	0.50196078,	0.50196078),
-                      0.25 * 128
+                      glm::vec3(0.0f,	0.1f,	0.06f),
+                      glm::vec3(0.0f,	0.50980392f,	0.50980392f),
+                      glm::vec3(0.50196078f,	0.50196078f,	0.50196078f),
+                      0.25f * 128
   };
 
   std::vector<Material> _materials = {
@@ -390,12 +501,12 @@ int Engine::Main()
 
   std::uniform_int_distribution<int> uni_sgn(1, 2);
   int randsgn[4];
-  std::uniform_real_distribution<float> uni_rad(5, 20);
+  std::uniform_real_distribution<float> uni_rad(5.0f, 20.0f);
   int randRadius[4];
   for (int i = 0; i < 4; ++i)
   {
     randsgn[i] = uni_sgn(gen) == 1 ? -1 : 1;
-    randRadius[i] = uni_rad(gen);
+    randRadius[i] = (int)uni_rad(gen);
   }
 
   lightShader->Use();
@@ -419,10 +530,13 @@ int Engine::Main()
     processInput();
 
     // rendering
+    // 1. pass
+    glBindFramebuffer(GL_FRAMEBUFFER, framebuf);
     //glClearColor(0.1f, 0.15f, 0.3f, 0.75f);
     //glClearColor(0.01f, 0.01f, 0.01f, 0.75f);
-    glClearColor(0.1f, 0.55f, 0.9f, 0.75f);
+    glClearColor(0.4f, 0.55f, 0.9f, 0.75f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+    glEnable(GL_DEPTH_TEST);
 
     if (!_pause)
     {
@@ -433,122 +547,29 @@ int Engine::Main()
       deltap = (float)glfwGetTime() - time;
     }
     // 4. draw the object
-    // note that we're translating the scene in the reverse direction of where we want to move
-    glm::mat4 view = _camera.GetViewMatrix();
-
-    glm::mat4 projection = glm::perspective(glm::radians(_camera._fov), float(_width) / float(_height), 0.1f, 100.0f);
-    //projection = glm::ortho(-(float)_width / 256, (float)_width / 256, -(float)_height / 256, (float)_height / 256, -100.1f, 100.0f);
-
-    // set lighting properties
-    lightSourceCube->Use();
-    lightSourceCube->SetVec3("lightColor", glm::vec3(1.0f) * (float)_lightColorIntensity / 100.0f);
-
-    // draw light source
-    lightSourceCube->SetMat4("view", view);
-    lightSourceCube->SetMat4("projection", projection);
-
-    float posTime = time / 3.0f;
-    float radius = 5.0f;
-    lightPos = cubePositions[0] + glm::vec3(radius * cos(posTime) / 2, radius * cos(posTime) / 3, radius * sin(posTime));
-    glm::vec3 newLightPos(-0.2f, -1.0f, -0.3f);
-
-    glm::mat4 model(1.0f);
-    model = glm::translate(model, lightPos);
-    float angle;
-    float rotTime = time / 5.0f;
-    angle = -20.0f * 15.5f;
-
-    model = glm::rotate(model, glm::radians(rotTime * angle), glm::vec3(1.0f, 0.3f * sin(time), 0.5f));
-    model = glm::scale(model, glm::vec3(1.0f) * 0.2f);
-    lightSourceCube->SetMat4("model", model);
-
-    glBindVertexArray(VAOs[1]);
-    glDrawArrays(GL_TRIANGLES, 0, 36);
-
-    // draw material cube(s)
-    lightShader->Use();
-    lightShader->SetMat4("view", view);
-    lightShader->SetMat4("projection", projection);
-
-    shaderSingleColor.Use();
-    shaderSingleColor.SetMat4("view", view);
-    shaderSingleColor.SetMat4("projection", projection);
-    lightShader->Use();
-
-    glActiveTexture(GL_TEXTURE0);
-    containerDiffuseMap.Use();
-
-    glActiveTexture(GL_TEXTURE1);
-    containerSpecularMap.Use();
-
-    glActiveTexture(GL_TEXTURE2);
-    containerEmissionMap.Use();
-
-    lightShader->SetVec3("viewPos", _camera._pos);
-
-    lightShader->SetVec3("dirLight.ambient",  glm::vec3(0.1f)/* * (float)(_lightAmbIntensity  * _lightColorIntensity) / 100.0f / 100.0f*/);
-    lightShader->SetVec3("dirLight.diffuse",  glm::vec3(0.0f)/* * (float)(_lightDiffIntensity * _lightColorIntensity) / 100.0f / 100.0f*/);
-    lightShader->SetVec3("dirLight.specular", glm::vec3(0.0f)/* * (float)(_lightSpecIntensity * _lightColorIntensity) / 100.0f / 100.0f*/);
-    lightShader->SetVec3("dirLight.direction", glm::vec3(0.0f, -50.0f, 0.0f));
-
-    //lightShader->SetVec3("pointLight.direction", newLightPos);
-    lightShader->SetVec3("pointLight.position", lightPos);
-    // ambient part should not be there
-    lightShader->SetVec3("pointLight.ambient", glm::vec3(0.0f)* (float)(_lightAmbIntensity * _lightColorIntensity) / 100.0f / 100.0f);
-    lightShader->SetVec3("pointLight.diffuse", glm::vec3(1.0f)* (float)(_lightDiffIntensity * _lightColorIntensity) / 100.0f / 100.0f);
-    lightShader->SetVec3("pointLight.specular", glm::vec3(1.0f)* (float)(_lightSpecIntensity * _lightColorIntensity) / 100.0f / 100.0f);
-
-
-    lightShader->SetFloat("pointLight.constant", 1.0f);
-    lightShader->SetFloat("pointLight.linear", 0.09f);
-    lightShader->SetFloat("pointLight.quadratic", 0.032f);
-
-    std::stringstream s;
-    s << "pointLights[";
-    std::streampos cur = s.tellp();
-
-    glm::vec3 movedPosisitons[4];
-
-    for (int i = 0; i < 4; ++i)
+    auto drawScene = [&](Camera& cam, float texWidth, float texHeight)
     {
-      movedPosisitons[i] = pointLightPositions[i] + glm::vec3(randRadius[i] * cos(randsgn[i] * posTime), randRadius[i] * cos(posTime), randRadius[i] * sin(randsgn[3 - i] * posTime));
-      s.seekp(cur);
-      s << i << "].position";
-      s.put('\0');
-      lightShader->SetVec3(s.str(), movedPosisitons[i]);
+      // note that we're translating the scene in the reverse direction of where we want to move
+      glm::mat4 view = cam.GetViewMatrix();
 
-      s.seekp(cur + std::streampos(3));
-      s << "diffuse";
-      s.put('\0');
-      lightShader->SetVec3(s.str(), glm::vec3(1.0f) * (float)(_lightDiffIntensity * _lightColorIntensity) / 100.0f / 100.0f);
+      glm::mat4 projection = glm::perspective(glm::radians(cam._fov), texWidth / texHeight, 0.1f, 100.0f);
+      //projection = glm::ortho(-(float)_width / 256, (float)_width / 256, -(float)_height / 256, (float)_height / 256, -100.1f, 100.0f);
 
-      s.seekp(cur + std::streampos(3));
-      s << "specular";
-      s.put('\0');
-      lightShader->SetVec3(s.str(), glm::vec3(1.0f) * (float)(_lightSpecIntensity * _lightColorIntensity) / 100.0f / 100.0f);
+      // set lighting properties
+      lightSourceCube->Use();
+      lightSourceCube->SetVec3("lightColor", glm::vec3(1.0f) * (float)_lightColorIntensity / 100.0f);
 
-      s.seekp(cur + std::streampos(3));
-      s << "constant";
-      s.put('\0');
-      lightShader->SetFloat(s.str(), 1.0f);
+      // draw light source
+      lightSourceCube->SetMat4("view", view);
+      lightSourceCube->SetMat4("projection", projection);
 
-      s.seekp(cur + std::streampos(3));
-      s << "linear";
-      s.put('\0');
-      lightShader->SetFloat(s.str(), 0.09f);
+      float posTime = time / 3.0f;
+      float radius = 5.0f;
+      lightPos = cubePositions[0] + glm::vec3(radius * cos(posTime) / 2, radius * cos(posTime) / 3, radius * sin(posTime));
+      glm::vec3 newLightPos(-0.2f, -1.0f, -0.3f);
 
-      s.seekp(cur + std::streampos(3));
-      s << "quadratic";
-      s.put('\0');
-      lightShader->SetFloat(s.str(), 0.032f);
-    }
-
-    // Draw all point lights
-    lightSourceCube->Use();
-    for (auto& position : movedPosisitons)
-    {
       glm::mat4 model(1.0f);
-      model = glm::translate(model, position);
+      model = glm::translate(model, lightPos);
       float angle;
       float rotTime = time / 5.0f;
       angle = -20.0f * 15.5f;
@@ -559,108 +580,241 @@ int Engine::Main()
 
       glBindVertexArray(VAOs[1]);
       glDrawArrays(GL_TRIANGLES, 0, 36);
-    }
 
-    lightShader->Use();
+      // draw material cube(s)
+      lightShader->Use();
+      lightShader->SetMat4("view", view);
+      lightShader->SetMat4("projection", projection);
 
-    lightShader->SetVec3("spotLight.ambient", glm::vec3(0.1f) * (float)(_spotLightColorIntensity) / 100.0f);
-    lightShader->SetVec3("spotLight.diffuse", glm::vec3(1.0f) * (float)(_spotLightColorIntensity) / 100.0f);
-    lightShader->SetVec3("spotLight.specular", glm::vec3(1.0f) * (float)(_spotLightColorIntensity) / 100.0f);
+      shaderSingleColor.Use();
+      shaderSingleColor.SetMat4("view", view);
+      shaderSingleColor.SetMat4("projection", projection);
+      lightShader->Use();
 
-    lightShader->SetVec3("spotLight.position", _camera._pos);
-    lightShader->SetVec3("spotLight.direction", _camera._front);
-    lightShader->SetFloat("spotLight.cutOff", glm::cos(glm::radians(12.5f)));
-    lightShader->SetFloat("spotLight.outerCutOff", glm::cos(glm::radians(17.5f)));
+      glActiveTexture(GL_TEXTURE0);
+      containerDiffuseMap.Use();
 
-    lightShader->SetFloat("spotLight.constant", 1.0f);
-    lightShader->SetFloat("spotLight.linear", 0.09f);
-    lightShader->SetFloat("spotLight.quadratic", 0.032f);
+      glActiveTexture(GL_TEXTURE1);
+      containerSpecularMap.Use();
 
-    auto drawContainers = [&]()
-    {
-      glBindVertexArray(VAOs[0]);
-      for (int i = 0; i < _materials.size(); ++i)
+      glActiveTexture(GL_TEXTURE2);
+      containerEmissionMap.Use();
+
+      lightShader->SetVec3("viewPos", cam._pos);
+
+      lightShader->SetVec3("dirLight.ambient", glm::vec3(0.1f)/* * (float)(_lightAmbIntensity  * _lightColorIntensity) / 100.0f / 100.0f*/);
+      lightShader->SetVec3("dirLight.diffuse", glm::vec3(0.0f)/* * (float)(_lightDiffIntensity * _lightColorIntensity) / 100.0f / 100.0f*/);
+      lightShader->SetVec3("dirLight.specular", glm::vec3(0.0f)/* * (float)(_lightSpecIntensity * _lightColorIntensity) / 100.0f / 100.0f*/);
+      lightShader->SetVec3("dirLight.direction", glm::vec3(0.0f, -50.0f, 0.0f));
+
+      //lightShader->SetVec3("pointLight.direction", newLightPos);
+      lightShader->SetVec3("pointLight.position", lightPos);
+      // ambient part should not be there
+      lightShader->SetVec3("pointLight.ambient", glm::vec3(0.0f) * (float)(_lightAmbIntensity * _lightColorIntensity) / 100.0f / 100.0f);
+      lightShader->SetVec3("pointLight.diffuse", glm::vec3(1.0f) * (float)(_lightDiffIntensity * _lightColorIntensity) / 100.0f / 100.0f);
+      lightShader->SetVec3("pointLight.specular", glm::vec3(1.0f) * (float)(_lightSpecIntensity * _lightColorIntensity) / 100.0f / 100.0f);
+
+
+      lightShader->SetFloat("pointLight.constant", 1.0f);
+      lightShader->SetFloat("pointLight.linear", 0.09f);
+      lightShader->SetFloat("pointLight.quadratic", 0.032f);
+
+      std::stringstream s;
+      s << "pointLights[";
+      std::streampos cur = s.tellp();
+
+      glm::vec3 movedPosisitons[4];
+
+      for (int i = 0; i < 4; ++i)
       {
-        auto& material = _materials[i];
-        //lightShader->SetVec3("material.ambient", material.ambient);
-        //lightShader->SetVec3("material.diffuse", material.diffuse);
-        //lightShader->SetVec3("material.specular", material.specular);
-        //lightShader->SetFloat("material.shininess", material.shininess);
+        movedPosisitons[i] = pointLightPositions[i] + glm::vec3(randRadius[i] * cos(randsgn[i] * posTime), randRadius[i] * cos(posTime), randRadius[i] * sin(randsgn[3 - i] * posTime));
+        s.seekp(cur);
+        s << i << "].position";
+        s.put('\0');
+        lightShader->SetVec3(s.str(), movedPosisitons[i]);
 
-        //lightShader->SetVec3("material.specular", 0.5f, 0.5f, 0.5f);
-        lightShader->SetFloat("material.shininess", 64.0f);
+        s.seekp(cur + std::streampos(3));
+        s << "diffuse";
+        s.put('\0');
+        lightShader->SetVec3(s.str(), glm::vec3(1.0f) * (float)(_lightDiffIntensity * _lightColorIntensity) / 100.0f / 100.0f);
 
-        /*lightShader->SetVec3("material.ambient", 1.0f, 0.5f, 0.31f);
-        lightShader->SetVec3("material.diffuse", 1.0f, 0.5f, 0.31f);
-        lightShader->SetVec3("material.specular", 0.5f, 0.5f, 0.5f);
-        lightShader->SetFloat("material.shininess", 32.0f);*/
-        /*lightPos.x = 1.0f + sin(glfwGetTime()) * 2.0f;
-        lightPos.y = sin(glfwGetTime() / 2.0f) * 1.0f;*/
+        s.seekp(cur + std::streampos(3));
+        s << "specular";
+        s.put('\0');
+        lightShader->SetVec3(s.str(), glm::vec3(1.0f) * (float)(_lightSpecIntensity * _lightColorIntensity) / 100.0f / 100.0f);
 
-        /* glm::vec4 lightPosView = view * glm::vec4(lightPos, 1.0f);
-         lightShader->SetVec3("lightPos", glm::vec3(lightPosView));*/
+        s.seekp(cur + std::streampos(3));
+        s << "constant";
+        s.put('\0');
+        lightShader->SetFloat(s.str(), 1.0f);
 
-         //lightShader->SetVec3("lightPos", lightPos);
-         /*glm::vec4 viewview = view * glm::vec4(_camera._pos, 1.0f);
-         lightShader->SetVec3("viewPos", glm::vec3(viewview));*/
+        s.seekp(cur + std::streampos(3));
+        s << "linear";
+        s.put('\0');
+        lightShader->SetFloat(s.str(), 0.09f);
 
-         //lightShader->SetVec3("lightPos", glm::vec3(view * glm::vec4(newLightPos, 1.0f)));
-         //lightShader->SetVec3("light.direction", glm::vec3(view * glm::vec4(newLightPos, 1.0f)));
+        s.seekp(cur + std::streampos(3));
+        s << "quadratic";
+        s.put('\0');
+        lightShader->SetFloat(s.str(), 0.032f);
+      }
 
-        model = glm::mat4(1.0f);
-        model = glm::translate(model, cubePositions[0] + randvecs[i] + glm::normalize(randvecs[i]) * 2.0f);
-        //model = glm::translate(model, cubePositions[i]);
-        model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f) * 1.0f);
+      // Draw all point lights
+      lightSourceCube->Use();
+      for (auto& position : movedPosisitons)
+      {
+        glm::mat4 model(1.0f);
+        model = glm::translate(model, position);
+        float angle;
+        float rotTime = time / 5.0f;
+        angle = -20.0f * 15.5f;
 
-        angle = rotTime * (-20.0f);
-        model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f * sin(time), 0.5f));
-        lightShader->SetMat4("model", model);
+        model = glm::rotate(model, glm::radians(rotTime * angle), glm::vec3(1.0f, 0.3f * sin(time), 0.5f));
+        model = glm::scale(model, glm::vec3(1.0f) * 0.2f);
+        lightSourceCube->SetMat4("model", model);
 
+        glBindVertexArray(VAOs[1]);
         glDrawArrays(GL_TRIANGLES, 0, 36);
       }
+
+      lightShader->Use();
+
+      lightShader->SetVec3("spotLight.ambient", glm::vec3(0.1f) * (float)(_spotLightColorIntensity) / 100.0f);
+      lightShader->SetVec3("spotLight.diffuse", glm::vec3(1.0f) * (float)(_spotLightColorIntensity) / 100.0f);
+      lightShader->SetVec3("spotLight.specular", glm::vec3(1.0f) * (float)(_spotLightColorIntensity) / 100.0f);
+
+      lightShader->SetVec3("spotLight.position", cam._pos);
+      lightShader->SetVec3("spotLight.direction", cam._front);
+      lightShader->SetFloat("spotLight.cutOff", glm::cos(glm::radians(12.5f)));
+      lightShader->SetFloat("spotLight.outerCutOff", glm::cos(glm::radians(17.5f)));
+
+      lightShader->SetFloat("spotLight.constant", 1.0f);
+      lightShader->SetFloat("spotLight.linear", 0.09f);
+      lightShader->SetFloat("spotLight.quadratic", 0.032f);
+
+      auto drawContainers = [&]()
+      {
+        glBindVertexArray(VAOs[0]);
+        for (int i = 0; i < _materials.size(); ++i)
+        {
+          auto& material = _materials[i];
+          //lightShader->SetVec3("material.ambient", material.ambient);
+          //lightShader->SetVec3("material.diffuse", material.diffuse);
+          //lightShader->SetVec3("material.specular", material.specular);
+          //lightShader->SetFloat("material.shininess", material.shininess);
+
+          //lightShader->SetVec3("material.specular", 0.5f, 0.5f, 0.5f);
+          lightShader->SetFloat("material.shininess", 64.0f);
+
+          /*lightShader->SetVec3("material.ambient", 1.0f, 0.5f, 0.31f);
+          lightShader->SetVec3("material.diffuse", 1.0f, 0.5f, 0.31f);
+          lightShader->SetVec3("material.specular", 0.5f, 0.5f, 0.5f);
+          lightShader->SetFloat("material.shininess", 32.0f);*/
+          /*lightPos.x = 1.0f + sin(glfwGetTime()) * 2.0f;
+          lightPos.y = sin(glfwGetTime() / 2.0f) * 1.0f;*/
+
+          /* glm::vec4 lightPosView = view * glm::vec4(lightPos, 1.0f);
+           lightShader->SetVec3("lightPos", glm::vec3(lightPosView));*/
+
+           //lightShader->SetVec3("lightPos", lightPos);
+           /*glm::vec4 viewview = view * glm::vec4(_camera._pos, 1.0f);
+           lightShader->SetVec3("viewPos", glm::vec3(viewview));*/
+
+           //lightShader->SetVec3("lightPos", glm::vec3(view * glm::vec4(newLightPos, 1.0f)));
+           //lightShader->SetVec3("light.direction", glm::vec3(view * glm::vec4(newLightPos, 1.0f)));
+
+          model = glm::mat4(1.0f);
+          model = glm::translate(model, cubePositions[0] + randvecs[i] + glm::normalize(randvecs[i]) * 2.0f);
+          //model = glm::translate(model, cubePositions[i]);
+          model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f) * 1.0f);
+
+          angle = rotTime * (-20.0f);
+          model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f * sin(time), 0.5f));
+          lightShader->SetMat4("model", model);
+
+          glDrawArrays(GL_TRIANGLES, 0, 36);
+        }
+      };
+
+
+      //drawContainers();
+
+      model = glm::mat4(1.0);
+      glm::vec3 bagPos(0.0f, 5.0f, 1.0f);
+      model = glm::translate(model, bagPos);
+      //model = glm::rotate(model, glm::degrees(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+
+      lightShader->SetMat4("model", model);
+      lightShader->SetFloat("material.shininess", 64.0f);
+      guitarBag.Draw(*lightShader);
+
+      model = glm::scale(model, glm::vec3(1.1f));
+      shaderSingleColor.Use();
+      shaderSingleColor.SetMat4("model", model);
+      guitarBag.Highlight(shaderSingleColor);
+
+      lightShader->Use();
+      model = glm::mat4(1.0);
+      glm::vec3 singaporePos(0.0f, -5.0f, 1.0f);
+      model = glm::translate(model, singaporePos);
+      model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f) * 0.01f);
+
+      /*lightShader->SetVec3("dirLight.ambient", glm::vec3(0.1f));
+      lightShader->SetVec3("dirLight.diffuse", glm::vec3(1.0f));
+      lightShader->SetVec3("dirLight.specular", glm::vec3(1.0f));
+
+      lightShader->SetVec3("dirLight.direction", glm::vec3(1.0f, 1.0f, 0.0f));
+
+      lightShader->SetFloat("dirLight.constant", 0.0f);
+      lightShader->SetFloat("dirLight.linear", 0.0f);
+      lightShader->SetFloat("dirLight.quadratic", 0.0f);*/
+
+      lightShader->SetMat4("model", model);
+      /*lightShader->SetVec3("material.ambient", obsidian.ambient);
+      lightShader->SetVec3("material.diffuse", obsidian.diffuse);
+      lightShader->SetVec3("material.specular", obsidian.specular);
+      lightShader->SetFloat("material.shininess", obsidian.shininess);*/
+
+      singapore.Draw(*lightShader);
+      //destructor.Draw(*lightShader);
+      //sponza.Draw(*lightShader);
     };
 
-    //drawContainers();
+    drawScene(_camera, float(_width), float(_height));
 
-    model = glm::mat4(1.0);
-    glm::vec3 bagPos(0.0f, 5.0f, 1.0f);
-    model = glm::translate(model, bagPos);
-    //model = glm::rotate(model, glm::degrees(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    // 1.5. pass (render mirror)
+    /*_camera._front *= -1;
+    _camera._right *= -1;*/
+    glBindFramebuffer(GL_FRAMEBUFFER, mirrorBuf);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-    lightShader->SetMat4("model", model);
-    lightShader->SetFloat("material.shininess", 64.0f);
-    guitarBag.Draw(*lightShader);
+    Camera mirrorCam(_camera);
+    mirrorCam._front *= -1;
+    mirrorCam._right *= -1;
+    drawScene(mirrorCam, (_width), float(_height));
+    // reset camera to original state
+    /*_camera._front *= -1;
+    _camera._right *= -1;*/
+    // 2.pass = draw the screen (quad)
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glClearColor(.2f, .2f, .6f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
 
-    model = glm::scale(model, glm::vec3(1.1f));
-    shaderSingleColor.Use();
-    shaderSingleColor.SetMat4("model", model);
-    guitarBag.Highlight(shaderSingleColor);
+    _currentEffect->Use();
+    glm::mat4 rtTexTransform(1.0f);
+    _currentEffect->SetMat4("transform", rtTexTransform);
+    glBindVertexArray(screenQuadVAO);
+    glDisable(GL_DEPTH_TEST);
+    glBindTexture(GL_TEXTURE_2D, textureColor);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
 
-    lightShader->Use();
-    model = glm::mat4(1.0);
-    glm::vec3 singaporePos(0.0f, -5.0f, 1.0f);
-    model = glm::translate(model, singaporePos);
-    model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f) * 0.01f);
-
-    /*lightShader->SetVec3("dirLight.ambient", glm::vec3(0.1f));
-    lightShader->SetVec3("dirLight.diffuse", glm::vec3(1.0f));
-    lightShader->SetVec3("dirLight.specular", glm::vec3(1.0f));
-
-    lightShader->SetVec3("dirLight.direction", glm::vec3(1.0f, 1.0f, 0.0f));
-
-    lightShader->SetFloat("dirLight.constant", 0.0f);
-    lightShader->SetFloat("dirLight.linear", 0.0f);
-    lightShader->SetFloat("dirLight.quadratic", 0.0f);*/
-
-    lightShader->SetMat4("model", model);
-    /*lightShader->SetVec3("material.ambient", obsidian.ambient);
-    lightShader->SetVec3("material.diffuse", obsidian.diffuse);
-    lightShader->SetVec3("material.specular", obsidian.specular);
-    lightShader->SetFloat("material.shininess", obsidian.shininess);*/
-
-    singapore.Draw(*lightShader);
-    //destructor.Draw(*lightShader);
-    //sponza.Draw(*lightShader);
+    // Draw mirror
+    //rtTexTransform = glm::translate(rtTexTransform, glm::vec3(0.5f, -0.5f, 0.0f));
+    //rtTexTransform = glm::scale(rtTexTransform, glm::vec3(0.33f));
+    _currentEffect->SetMat4("transform", rtTexTransform);
+    glBindVertexArray(mirrorQuadVAO);
+    glBindTexture(GL_TEXTURE_2D, texMirror);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
 
     glfwSwapBuffers((GLFWwindow*)_window);
     glfwPollEvents();
@@ -671,6 +825,9 @@ int Engine::Main()
   glDeleteVertexArrays(2, VAOs);
   glDeleteBuffers(2, VBOs);
   glDeleteBuffers(2, EBO);
+
+  glDeleteVertexArrays(1, &screenQuadVAO);
+  glDeleteBuffers(1, &screenQuadVBO);
 
   glfwTerminate();
   return 0;
@@ -740,11 +897,220 @@ void Engine::CreateShaders()
   /*std::unique_ptr<Shader> shader1 = std::make_unique<Shader>((root + "VertexShader.glsl").c_str(), (root + "FragmentShader.glsl").c_str());
   std::unique_ptr<Shader> shader2 = std::make_unique<Shader>((root + "VertexShader.glsl").c_str(), (root + "FragmentShader2.glsl").c_str());*/
 
+  std::string simpleVScode = R"(
+    #version 330 core
+    layout (location = 0) in vec2 aPos;
+    layout (location = 1) in vec2 aTexCoords;
+
+    out vec2 TexCoords;
+    uniform mat4 transform;
+
+    void main()
+    {
+      gl_Position = transform * vec4(aPos.x, aPos.y, 0.0, 1.0);
+      TexCoords = aTexCoords;
+    }
+  )";
+
+  std::string simpleFScode = R"(
+    #version 330 core
+    out vec4 FragColor;
+    in vec2 TexCoords;
+    uniform sampler2D screenTexture;
+
+    void main()
+    {
+      FragColor = texture(screenTexture, TexCoords);
+    }
+  )";
+
+  std::string simpleFSnegative = R"(
+    #version 330 core
+    out vec4 FragColor;
+    in vec2 TexCoords;
+    uniform sampler2D screenTexture;
+
+    void main()
+    {
+      FragColor = vec4(vec3(1.0f - texture(screenTexture, TexCoords)), 1.0);
+    }
+  )";
+
+  std::string simpleFSgscale = R"(
+    #version 330 core
+    out vec4 FragColor;
+    in vec2 TexCoords;
+    uniform sampler2D screenTexture;
+
+    void main()
+    {
+      vec3 texColor = texture(screenTexture, TexCoords).rgb;
+      float avg = (texColor.r + texColor.g + texColor.b) / 3.0f;
+      FragColor = vec4(avg, avg, avg, 1.0);
+    })";
+
+  std::string simpleFSgscaleW = R"(
+    #version 330 core
+    out vec4 FragColor;
+    in vec2 TexCoords;
+    uniform sampler2D screenTexture;
+
+    void main()
+    {
+      FragColor = texture(screenTexture, TexCoords);
+      float avg = 0.2126 * FragColor.r + 0.7152 * FragColor.g + 0.0722 * FragColor.b;
+      FragColor = vec4(avg, avg, avg, 1.0);
+    }
+  )";
+
+  std::string fsSharpen = R"(
+    #version 330 core
+    out vec4 FragColor;
+    in vec2 TexCoords;
+    uniform sampler2D screenTexture;
+
+    const float offset = 1.0 / 300.0;
+
+    void main()
+    {
+      vec2 offsets[9] = vec2[](
+          vec2(-offset,  offset), // top-left
+          vec2( 0.0f,    offset), // top-center
+          vec2( offset,  offset), // top-right
+          vec2(-offset,  0.0f),   // center-left
+          vec2( 0.0f,    0.0f),   // center-center
+          vec2( offset,  0.0f),   // center-right
+          vec2(-offset, -offset), // bottom-left
+          vec2( 0.0f,   -offset), // bottom-center
+          vec2( offset, -offset)  // bottom-right
+      );
+
+      float kernel[9] = float[](
+          -1, -1, -1,
+          -1,  9, -1,
+          -1, -1, -1
+      );
+
+      vec3 sampleTex[9];
+      for(int i = 0; i < 9; i++)
+      {
+          sampleTex[i] = vec3(texture(screenTexture, TexCoords.st + offsets[i]));
+      }
+      vec3 col = vec3(0.0);
+      for(int i = 0; i < 9; i++)
+          col += sampleTex[i] * kernel[i];
+
+      FragColor = vec4(col, 1.0);
+      }
+  )";
+
+  std::string fsBlur = R"(
+    #version 330 core
+    out vec4 FragColor;
+    in vec2 TexCoords;
+    uniform sampler2D screenTexture;
+
+    const float offset = 1.0 / 300.0;
+
+    void main()
+    {
+      vec2 offsets[9] = vec2[](
+          vec2(-offset,  offset), // top-left
+          vec2( 0.0f,    offset), // top-center
+          vec2( offset,  offset), // top-right
+          vec2(-offset,  0.0f),   // center-left
+          vec2( 0.0f,    0.0f),   // center-center
+          vec2( offset,  0.0f),   // center-right
+          vec2(-offset, -offset), // bottom-left
+          vec2( 0.0f,   -offset), // bottom-center
+          vec2( offset, -offset)  // bottom-right
+      );
+
+      float kernel[9] = float[](
+        1.0 / 16, 2.0 / 16, 1.0 / 16,
+        2.0 / 16, 4.0 / 16, 2.0 / 16,
+        1.0 / 16, 2.0 / 16, 1.0 / 16
+      );
+
+      vec3 sampleTex[9];
+      for(int i = 0; i < 9; i++)
+      {
+          sampleTex[i] = vec3(texture(screenTexture, TexCoords.st + offsets[i]));
+      }
+      vec3 col = vec3(0.0);
+      for(int i = 0; i < 9; i++)
+          col += sampleTex[i] * kernel[i];
+
+      FragColor = vec4(col, 1.0);
+      }
+  )";
+
+  std::string fsEdge = R"(
+    #version 330 core
+    out vec4 FragColor;
+    in vec2 TexCoords;
+    uniform sampler2D screenTexture;
+
+    const float offset = 1.0 / 300.0;
+
+    void main()
+    {
+      vec2 offsets[9] = vec2[](
+          vec2(-offset,  offset), // top-left
+          vec2( 0.0f,    offset), // top-center
+          vec2( offset,  offset), // top-right
+          vec2(-offset,  0.0f),   // center-left
+          vec2( 0.0f,    0.0f),   // center-center
+          vec2( offset,  0.0f),   // center-right
+          vec2(-offset, -offset), // bottom-left
+          vec2( 0.0f,   -offset), // bottom-center
+          vec2( offset, -offset)  // bottom-right
+      );
+
+      float kernel[9] = float[](
+           1,  1,  1,
+           1, -8,  1,
+           1,  1,  1
+      );
+
+      vec3 sampleTex[9];
+      for(int i = 0; i < 9; i++)
+      {
+          sampleTex[i] = vec3(texture(screenTexture, TexCoords.st + offsets[i]));
+      }
+      vec3 col = vec3(0.0);
+      for(int i = 0; i < 9; i++)
+          col += sampleTex[i] * kernel[i];
+
+      FragColor = vec4(col, 1.0);
+      }
+  )";
+
+  std::unique_ptr<Shader> simpleShader            = std::make_unique<Shader>(simpleVScode, simpleFScode);
+  std::unique_ptr<Shader> effectNegative          = std::make_unique<Shader>(simpleVScode, simpleFSnegative);
+  std::unique_ptr<Shader> effectGreyScale         = std::make_unique<Shader>(simpleVScode, simpleFSgscale);
+  std::unique_ptr<Shader> effectGreyScaleWeighted = std::make_unique<Shader>(simpleVScode, simpleFSgscaleW);
+  std::unique_ptr<Shader> effectSharpen           = std::make_unique<Shader>(simpleVScode, fsSharpen);
+  std::unique_ptr<Shader> effectBlur              = std::make_unique<Shader>(simpleVScode, fsBlur);
+  std::unique_ptr<Shader> effectEdge              = std::make_unique<Shader>(simpleVScode, fsEdge);
+
   _shaders.push_back(std::move(shader1));
   _shaders.push_back(std::move(shader2));
   _shaders.push_back(std::move(shaderL));
   _shaders.push_back(std::move(shaderLs));
   _shaders.push_back(std::move(shaderGouraud));
+
+  // simple shader to render screen quad (idx = 5)
+  _effects.push_back(std::move(simpleShader));
+  _currentEffect = _effects[0].get();
+
+  // effects
+  _effects.push_back(std::move(effectNegative));
+  _effects.push_back(std::move(effectGreyScale));
+  _effects.push_back(std::move(effectGreyScaleWeighted));
+  _effects.push_back(std::move(effectSharpen));
+  _effects.push_back(std::move(effectBlur));
+  _effects.push_back(std::move(effectEdge));
 }
 
 void Engine::InitVertices()
@@ -915,13 +1281,49 @@ void Engine::InitVertices()
     -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f
   };
 
-  _vertices.push_back(verticesa);
-  _vertices.push_back(verticesb);
-  _vertices.push_back(vertices1);
-  _vertices.push_back(vertices2);
-  _vertices.push_back(baseCubeVertices);
-  _vertices.push_back(baseCubeVerticesWnormal);
-  _vertices.push_back(cubeVertNormalTex);
+  std::vector<float> screenQuad = {
+    // positions   // texCoords
+    -1.0f,  1.0f,  0.0f, 1.0f,
+    -1.0f, -1.0f,  0.0f, 0.0f,
+     1.0f, -1.0f,  1.0f, 0.0f,
+
+    -1.0f,  1.0f,  0.0f, 1.0f,
+     1.0f, -1.0f,  1.0f, 0.0f,
+     1.0f,  1.0f,  1.0f, 1.0f
+  };
+
+  //std::vector<float> mirrorQuad = {
+  //  // positions   // texCoords
+  //  -1.0f,  1.0f,  0.0f, 1.0f,
+  //  -1.0f,  0.5f,  0.0f, 0.0f,
+  //  -0.5f,  0.5f,  1.0f, 0.0f,
+
+  //  -1.0f,  1.0f,  0.0f, 1.0f,
+  //  -0.5f,  0.5f,  1.0f, 0.0f,
+  //  -0.5f,  1.0f,  1.0f, 1.0f
+  //};
+
+  // actually mirrored texcoords
+  std::vector<float> mirrorQuad = {
+    // positions   // texCoords
+    -1.0f,  1.0f,  1.0f, 1.0f,
+    -1.0f,  0.5f,  1.0f, 0.0f,
+    -0.5f,  0.5f,  0.0f, 0.0f,
+
+    -1.0f,  1.0f,  1.0f, 1.0f,
+    -0.5f,  0.5f,  0.0f, 0.0f,
+    -0.5f,  1.0f,  0.0f, 1.0f
+  };
+
+  _vertices.push_back(std::move(verticesa));
+  _vertices.push_back(std::move(verticesb));
+  _vertices.push_back(std::move(vertices1));
+  _vertices.push_back(std::move(vertices2));
+  _vertices.push_back(std::move(baseCubeVertices));
+  _vertices.push_back(std::move(baseCubeVerticesWnormal));
+  _vertices.push_back(std::move(cubeVertNormalTex));
+  _vertices.push_back(std::move(screenQuad));
+  _vertices.push_back(std::move(mirrorQuad));
 }
 
 NULLENGINE_API void* CreateEngine()

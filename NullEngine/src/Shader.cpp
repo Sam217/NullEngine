@@ -64,6 +64,35 @@ Shader::Shader(const char* vertexPath, const char* fragmentPath)
     glDeleteShader(fragment);
 }
 
+Shader::Shader(std::string& vertexCode, std::string& fragmentCode)
+{
+  const char* vShaderCode = vertexCode.c_str();
+  const char* fShaderCode = fragmentCode.c_str();
+
+  unsigned vertex = CompileShader(GL_VERTEX_SHADER, vShaderCode);
+  unsigned fragment = CompileShader(GL_FRAGMENT_SHADER, fShaderCode);
+
+  _ID = glCreateProgram();
+
+  int success;
+  char infoLog[512];
+
+  glAttachShader(_ID, vertex);
+  glAttachShader(_ID, fragment);
+  glLinkProgram(_ID);
+  // print linking errors if any
+  glGetProgramiv(_ID, GL_LINK_STATUS, &success);
+  if (!success)
+  {
+    glGetProgramInfoLog(_ID, 512, NULL, infoLog);
+    std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
+  }
+
+  // delete the shaders as they're linked into our program now and no longer necessary
+  glDeleteShader(vertex);
+  glDeleteShader(fragment);
+}
+
 Shader::~Shader()
 {
     glDeleteProgram(_ID);

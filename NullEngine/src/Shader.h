@@ -13,8 +13,10 @@ public:
     // the program ID
     unsigned int _ID;
 
-    // constructor reads and builds the shader
+    // constructor reads and builds the shader from file
     Shader(const char* vertexPath, const char* fragmentPath);
+    // constructor reads and builds the shader directly from string
+    Shader(std::string& vertexCode, std::string& fragmentCode);
     // Destructor - deletes shader program from openGL
     ~Shader();
     // Use/activate the shader

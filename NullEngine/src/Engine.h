@@ -9,8 +9,8 @@
 #include "Camera.h"
 
 
-
 namespace NullEngine {
+
 
 	class Engine : IEngine
 	{
@@ -23,7 +23,7 @@ namespace NullEngine {
 		Engine() { _camera = Camera(_width / 2.0f, _height / 2.0f); };
 	private:
 		//! Window
-		void *_window = nullptr;
+		GLFWwindow* _window = nullptr;
 		//! Camera
 		Camera _camera;
 
@@ -38,11 +38,14 @@ namespace NullEngine {
 		bool _pause = false;
 		//
 		int _width = 1920;
-		// 
+		//
 		int _height = 1080;
 
 		//! list of shaders
 		std::vector<std::unique_ptr<Shader>> _shaders;
+		//! list of shaders - effects
+		std::vector<std::unique_ptr<Shader>> _effects;
+		const Shader* _currentEffect = nullptr;
 		//!
 		std::vector<std::vector<float>> _vertices;
 
@@ -64,7 +67,7 @@ namespace NullEngine {
 		//************************************
 		// Method:    Framebuffer_size_callback
 		// FullName:  NullEngine::Engine::Framebuffer_size_callback
-		// Access:    private 
+		// Access:    private
 		// Returns:   void
 		// Qualifier:
 		// Parameter: GLFWwindow * window
@@ -75,7 +78,7 @@ namespace NullEngine {
 		//************************************
 		// Method:    Mouse_callback
 		// FullName:  NullEngine::Engine::Mouse_callback
-		// Access:    private 
+		// Access:    private
 		// Returns:   void
 		// Qualifier:
 		// Parameter: GLFWwindow * window

@@ -20,6 +20,8 @@ public:
   vector<std::shared_ptr<Texture>> _textures;
 
   Mesh(vector<Vertex>&& vertices, vector<unsigned int>&& indices, vector<std::shared_ptr<Texture>>&& textures);
+  // destructor
+  //~Mesh();
   void Draw(Shader& shader);
 private:
   //  render data
