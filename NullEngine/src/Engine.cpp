@@ -127,21 +127,21 @@ void Engine::processInput()
     lastPause = currentFrame;
   }
 
-  if (glfwGetKey(_window, GLFW_KEY_KP_0) == GLFW_PRESS && _effects[0])
+  if (glfwGetKey(_window, GLFW_KEY_KP_0) == GLFW_PRESS && _effects[0].get())
     _currentEffect = _effects[0].get();
-  if (glfwGetKey(_window, GLFW_KEY_KP_1) == GLFW_PRESS && _effects[1])
+  if (glfwGetKey(_window, GLFW_KEY_KP_1) == GLFW_PRESS && _effects[1].get())
     _currentEffect = _effects[1].get();
-  if (glfwGetKey(_window, GLFW_KEY_KP_2) == GLFW_PRESS && _effects[2])
+  if (glfwGetKey(_window, GLFW_KEY_KP_2) == GLFW_PRESS && _effects[2].get())
     _currentEffect = _effects[2].get();
-  if (glfwGetKey(_window, GLFW_KEY_KP_3) == GLFW_PRESS && _effects[3])
+  if (glfwGetKey(_window, GLFW_KEY_KP_3) == GLFW_PRESS && _effects[3].get())
     _currentEffect = _effects[3].get();
-  if (glfwGetKey(_window, GLFW_KEY_KP_4) == GLFW_PRESS && _effects[4])
+  if (glfwGetKey(_window, GLFW_KEY_KP_4) == GLFW_PRESS && _effects[4].get())
     _currentEffect = _effects[4].get();
-  if (glfwGetKey(_window, GLFW_KEY_KP_5) == GLFW_PRESS && _effects[5])
+  if (glfwGetKey(_window, GLFW_KEY_KP_5) == GLFW_PRESS && _effects[5].get())
     _currentEffect = _effects[5].get();
-  if (glfwGetKey(_window, GLFW_KEY_KP_6) == GLFW_PRESS && _effects[6])
+  if (glfwGetKey(_window, GLFW_KEY_KP_6) == GLFW_PRESS && _effects[6].get())
     _currentEffect = _effects[6].get();
-  if (glfwGetKey(_window, GLFW_KEY_KP_7) == GLFW_PRESS && _effects[7])
+  if (glfwGetKey(_window, GLFW_KEY_KP_7) == GLFW_PRESS && _effects[7].get())
     _currentEffect = _effects[7].get();
 
   // camera
@@ -1111,6 +1111,9 @@ void Engine::CreateShaders()
   _effects.push_back(std::move(effectSharpen));
   _effects.push_back(std::move(effectBlur));
   _effects.push_back(std::move(effectEdge));
+
+  // DIRTY solution
+  _effects.resize(8);
 }
 
 void Engine::InitVertices()
