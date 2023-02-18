@@ -8,6 +8,9 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <imgui.h>
+#include <backends/imgui_impl_glfw.h>
+#include <backends/imgui_impl_opengl3.h>
 
 #include "Engine.h"
 #include "IEngine.h"
@@ -39,26 +42,58 @@ void Engine::Framebuffer_size_callback(GLFWwindow* window, int width, int height
 
 void Engine::Mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
+  // if set, we pass inputs only to ImGUI
+  if (_engineContext->_io->WantCaptureMouse)
+  {
+    glfwSetInputMode(_engineContext->_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    return;
+  }
+
+  //glfwSetInputMode(_engineContext->_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
   _engineContext->_camera.ProcessMouseMovement(window, xpos, ypos);
 }
 
 void Engine::Scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
+  // if set, we pass inputs only to ImGUI
+  if (_engineContext->_io->WantCaptureMouse)
+  {
+    glfwSetInputMode(_engineContext->_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    return;
+  }
+
+  //glfwSetInputMode(_engineContext->_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
   if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
     _engineContext->_camera.ProcessMouseScrollZoom((float)yoffset);
   else
     _engineContext->_camera.ProcessMouseScroll((float)yoffset);
 }
 
-void Engine::processInput()
+void Engine::processInput(float dt)
 {
   _engineContext = this;
-  static float lastFrame = (float)glfwGetTime();
-  static float lastPause = 0.0f;
+  static float leastInterval = 0.0f;
+  static bool mouseSwitch = true;
+  leastInterval += dt;
 
-  float currentFrame = (float)glfwGetTime();
-  float deltaTime = currentFrame - lastFrame;
-  lastFrame = currentFrame;
+  if (glfwGetKey(_window, GLFW_KEY_RIGHT_CONTROL) == GLFW_PRESS && leastInterval > 0.2f)
+  {
+    assert(_io);
+    ImGuiIO& io = *_io;
+
+    // Set mouse input accordingly
+    // const int hideCursor = io.WantCaptureMouse ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED;
+    const int hideCursor = mouseSwitch ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED;
+    glfwSetInputMode(_window, GLFW_CURSOR, hideCursor);
+    OutputDebugStringW(L"RIGHT CONTROL PRESSED\n");
+    mouseSwitch = !mouseSwitch;
+    leastInterval = 0.0f;
+  }
+
+  // if set, we pass inputs only to ImGUI
+  if (_io->WantCaptureKeyboard)
+    return;
 
   if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
     glfwSetWindowShouldClose((GLFWwindow*)_window, true);
@@ -105,9 +140,8 @@ void Engine::processInput()
     --_lightAmbIntensity;
   }
 
-  if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_L) == GLFW_PRESS && currentFrame - lastPause > 0.2f)
+  if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_L) == GLFW_PRESS && leastInterval > 0.2f)
   {
-    lastPause = currentFrame;
     int* lightIntens;
 
     if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
@@ -119,12 +153,14 @@ void Engine::processInput()
       *lightIntens = 100;
     else
       *lightIntens = 0;
+
+    leastInterval = 0.0f;
   }
 
-  if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_P) == GLFW_PRESS && currentFrame - lastPause > 0.2f)
+  if (glfwGetKey((GLFWwindow*)_window, GLFW_KEY_P) == GLFW_PRESS && leastInterval > 0.2f)
   {
     _pause = !_pause;
-    lastPause = currentFrame;
+    leastInterval = 0.0f;
   }
 
   if (glfwGetKey(_window, GLFW_KEY_KP_0) == GLFW_PRESS && _effects[0].get())
@@ -145,7 +181,7 @@ void Engine::processInput()
     _currentEffect = _effects[7].get();
 
   // camera
-  _camera.ProcessKeyboard((GLFWwindow*)_window, deltaTime);
+  _camera.ProcessKeyboard((GLFWwindow*)_window, dt);
 }
 
 void Engine::Init()
@@ -157,6 +193,7 @@ int Engine::Main()
   InitGLFW();
   CreateShaders();
   InitVertices();
+  InitImGui();
 
   // obtain resources path
   std::string root = R"(..\Resources\)";
@@ -523,18 +560,54 @@ int Engine::Main()
   glActiveTexture(GL_TEXTURE2);
   containerEmissionMap.Use();
 
+  glm::vec4 clear_color = {0.4f, 0.55f, 0.9f, 0.75f};
+
+  // Time measuring
+  float frameBeg = (float)glfwGetTime();
+  bool showMirror = false;
+
   // Main loop
   while (!glfwWindowShouldClose((GLFWwindow*)_window))
   {
+    float frameEnd = (float)glfwGetTime();
     // process input
-    processInput();
+    //glfwPollEvents();
+    processInput(frameEnd - frameBeg);
+    frameBeg = frameEnd;
 
-    // rendering
+    // Start the Dear ImGui frame
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+
+    // 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
+    {
+      static float mouseSensMult = 2.5f;
+      ImGui::Begin("CrappyEngine Settings");
+      ImGui::Text("Dear ImGUI DIRTY integration");
+      //ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
+      //ImGui::Checkbox("Another Window", &show_another_window);
+
+      ImGui::SliderFloat("Mouse sensitivity", &mouseSensMult, 0.0f, 10.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
+      _camera._mouseSensitivity = mouseSensMult / 100.0f;
+      ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
+
+      if (ImGui::Button("Show Mirror"))
+        showMirror = !showMirror;
+      ImGui::SameLine();
+      const char* truestr = "true"; const char* falsestr = "false";
+      ImGui::Text("Show mirror = %s", showMirror ? truestr : falsestr);
+
+      ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+      ImGui::End();
+    }
+
+    // Rendering
     // 1. pass
     glBindFramebuffer(GL_FRAMEBUFFER, framebuf);
     //glClearColor(0.1f, 0.15f, 0.3f, 0.75f);
     //glClearColor(0.01f, 0.01f, 0.01f, 0.75f);
-    glClearColor(0.4f, 0.55f, 0.9f, 0.75f);
+    glClearColor(clear_color.x* clear_color.w, clear_color.y* clear_color.w, clear_color.z* clear_color.w, clear_color.w);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
 
@@ -785,16 +858,19 @@ int Engine::Main()
     // 1.5. pass (render mirror)
     /*_camera._front *= -1;
     _camera._right *= -1;*/
-    glBindFramebuffer(GL_FRAMEBUFFER, mirrorBuf);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+    if (showMirror)
+    {
+      glBindFramebuffer(GL_FRAMEBUFFER, mirrorBuf);
+      glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-    Camera mirrorCam(_camera);
-    mirrorCam._front *= -1;
-    mirrorCam._right *= -1;
-    drawScene(mirrorCam, (_width), float(_height));
-    // reset camera to original state
-    /*_camera._front *= -1;
-    _camera._right *= -1;*/
+      Camera mirrorCam(_camera);
+      mirrorCam._front *= -1;
+      mirrorCam._right *= -1;
+      drawScene(mirrorCam, (_width), float(_height));
+      // reset camera to original state
+      /*_camera._front *= -1;
+      _camera._right *= -1;*/
+    }
     // 2.pass = draw the screen (quad)
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glClearColor(.2f, .2f, .6f, 1.0f);
@@ -809,12 +885,42 @@ int Engine::Main()
     glDrawArrays(GL_TRIANGLES, 0, 6);
 
     // Draw mirror
-    //rtTexTransform = glm::translate(rtTexTransform, glm::vec3(0.5f, -0.5f, 0.0f));
-    //rtTexTransform = glm::scale(rtTexTransform, glm::vec3(0.33f));
-    _currentEffect->SetMat4("transform", rtTexTransform);
-    glBindVertexArray(mirrorQuadVAO);
-    glBindTexture(GL_TEXTURE_2D, texMirror);
-    glDrawArrays(GL_TRIANGLES, 0, 6);
+    if (showMirror)
+    {
+      //rtTexTransform = glm::translate(rtTexTransform, glm::vec3(0.5f, -0.5f, 0.0f));
+      //rtTexTransform = glm::scale(rtTexTransform, glm::vec3(0.33f));
+      _currentEffect->SetMat4("transform", rtTexTransform);
+      glBindVertexArray(mirrorQuadVAO);
+      glBindTexture(GL_TEXTURE_2D, texMirror);
+      glTexImage2D(GL_TEXTURE_2D, 2, GL_RGB, mirrorWidth, mirrorHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+
+      /*glBindRenderbuffer(GL_RENDERBUFFER, mirrorRenderBuf);
+      glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, mirrorWidth / 4, mirrorHeight / 4);
+      glBindRenderbuffer(GL_RENDERBUFFER, 0);*/
+
+      glDrawArrays(GL_TRIANGLES, 0, 6);
+    }
+
+    // Rendering GUI
+    ImGui::Render();
+    int width, height;
+    glfwGetFramebufferSize(_window, &width, &height);
+    glViewport(0, 0, width, height);
+    //glClearColor(clear_color.x* clear_color.w, clear_color.y* clear_color.w, clear_color.z* clear_color.w, clear_color.w);
+    //glClear(GL_COLOR_BUFFER_BIT);
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
+    // Update and Render additional Platform Windows
+    // (Platform functions may change the current OpenGL context, so we save/restore it to make it easier to paste this code elsewhere.
+    //  For this specific demo app we could also call glfwMakeContextCurrent(window) directly)
+    ImGuiIO& io = *_io;
+    if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+    {
+      GLFWwindow* backup_current_context = glfwGetCurrentContext();
+      ImGui::UpdatePlatformWindows();
+      ImGui::RenderPlatformWindowsDefault();
+      glfwMakeContextCurrent(backup_current_context);
+    }
 
     glfwSwapBuffers((GLFWwindow*)_window);
     glfwPollEvents();
@@ -1327,6 +1433,60 @@ void Engine::InitVertices()
   _vertices.push_back(std::move(cubeVertNormalTex));
   _vertices.push_back(std::move(screenQuad));
   _vertices.push_back(std::move(mirrorQuad));
+}
+
+void Engine::InitImGui()
+{
+  // Setup Dear ImGui context
+  IMGUI_CHECKVERSION();
+  ImGui::CreateContext();
+  _io = &ImGui::GetIO(); //(void)io;
+  ImGuiIO& io = *_io;
+  io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;       // Enable Keyboard Controls
+  //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+  io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;           // Enable Docking
+  io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
+  //io.ConfigViewportsNoAutoMerge = true;
+  //io.ConfigViewportsNoTaskBarIcon = true;
+
+  // Setup Dear ImGui style
+  ImGui::StyleColorsDark();
+  //ImGui::StyleColorsLight();
+
+  // When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
+  ImGuiStyle& style = ImGui::GetStyle();
+  if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
+  {
+    style.WindowRounding = 0.0f;
+    style.Colors[ImGuiCol_WindowBg].w = 1.0f;
+  }
+
+  // Setup Platform/Renderer backends
+  const char* glsl_version = "#version 130";
+  ImGui_ImplGlfw_InitForOpenGL(_window, true);
+  ImGui_ImplOpenGL3_Init(glsl_version);
+
+  // Load Fonts
+  // - If no fonts are loaded, dear imgui will use the default font. You can also load multiple fonts and use ImGui::PushFont()/PopFont() to select them.
+  // - AddFontFromFileTTF() will return the ImFont* so you can store it if you need to select the font among multiple.
+  // - If the file cannot be loaded, the function will return NULL. Please handle those errors in your application (e.g. use an assertion, or display an error and quit).
+  // - The fonts will be rasterized at a given size (w/ oversampling) and stored into a texture when calling ImFontAtlas::Build()/GetTexDataAsXXXX(), which ImGui_ImplXXXX_NewFrame below will call.
+  // - Use '#define IMGUI_ENABLE_FREETYPE' in your imconfig file to use Freetype for higher quality font rendering.
+  // - Read 'docs/FONTS.md' for more instructions and details.
+  // - Remember that in C/C++ if you want to include a backslash \ in a string literal you need to write a double backslash \\ !
+  // - Our Emscripten build process allows embedding fonts to be accessible at runtime from the "fonts/" folder. See Makefile.emscripten for details.
+  //io.Fonts->AddFontDefault();
+  //io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\segoeui.ttf", 18.0f);
+  //io.Fonts->AddFontFromFileTTF("../../misc/fonts/DroidSans.ttf", 16.0f);
+  io.Fonts->AddFontFromFileTTF("../Dependencies/imgui/misc/fonts/Roboto-Medium.ttf", 16.0f);
+  //io.Fonts->AddFontFromFileTTF("../../misc/fonts/Cousine-Regular.ttf", 15.0f);
+  //ImFont* font = io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\ArialUni.ttf", 18.0f, NULL, io.Fonts->GetGlyphRangesJapanese());
+  //IM_ASSERT(font != NULL);
+
+  // Our state
+  bool show_demo_window = true;
+  bool show_another_window = false;
+  ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 }
 
 NULLENGINE_API void* CreateEngine()

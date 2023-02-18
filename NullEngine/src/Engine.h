@@ -8,6 +8,7 @@
 #include "Shader.h"
 #include "Camera.h"
 
+struct ImGuiIO;
 
 namespace NullEngine {
 
@@ -22,6 +23,8 @@ namespace NullEngine {
 		//! Ctor
 		Engine() { _camera = Camera(_width / 2.0f, _height / 2.0f); };
 	private:
+		//! GUI
+		ImGuiIO* _io = nullptr;
 		//! Window
 		GLFWwindow* _window = nullptr;
 		//! Camera
@@ -64,6 +67,9 @@ namespace NullEngine {
 		void CreateShaders();
 		//!
 		void InitVertices();
+		void InitImGui();
+		//! Process input
+		void processInput(float dt);
 		//************************************
 		// Method:    Framebuffer_size_callback
 		// FullName:  NullEngine::Engine::Framebuffer_size_callback
@@ -87,8 +93,6 @@ namespace NullEngine {
 		//************************************
 		static void Mouse_callback(GLFWwindow* window, double xpos, double ypos);
 		static void Scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
-		//! Process input
-		void processInput();
 	};
 
 } // namespace NullEngine
