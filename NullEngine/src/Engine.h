@@ -25,6 +25,7 @@ namespace NullEngine {
 	private:
 		//! GUI
 		ImGuiIO* _io = nullptr;
+		bool _captureMouse = true;
 		//! Window
 		GLFWwindow* _window = nullptr;
 		//! Camera

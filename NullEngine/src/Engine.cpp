@@ -43,7 +43,7 @@ void Engine::Framebuffer_size_callback(GLFWwindow* window, int width, int height
 void Engine::Mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
   // if set, we pass inputs only to ImGUI
-  if (_engineContext->_io->WantCaptureMouse)
+  if (!_engineContext->_captureMouse || _engineContext->_io->WantCaptureMouse)
   {
     glfwSetInputMode(_engineContext->_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     return;
@@ -56,7 +56,7 @@ void Engine::Mouse_callback(GLFWwindow* window, double xpos, double ypos)
 void Engine::Scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
   // if set, we pass inputs only to ImGUI
-  if (_engineContext->_io->WantCaptureMouse)
+  if (!_engineContext->_captureMouse || _engineContext->_io->WantCaptureMouse)
   {
     glfwSetInputMode(_engineContext->_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     return;
@@ -74,7 +74,6 @@ void Engine::processInput(float dt)
 {
   _engineContext = this;
   static float leastInterval = 0.0f;
-  static bool mouseSwitch = true;
   leastInterval += dt;
 
   if (glfwGetKey(_window, GLFW_KEY_RIGHT_CONTROL) == GLFW_PRESS && leastInterval > 0.2f)
@@ -84,10 +83,10 @@ void Engine::processInput(float dt)
 
     // Set mouse input accordingly
     // const int hideCursor = io.WantCaptureMouse ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED;
-    const int hideCursor = mouseSwitch ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED;
+    const int hideCursor = _captureMouse ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED;
     glfwSetInputMode(_window, GLFW_CURSOR, hideCursor);
     OutputDebugStringW(L"RIGHT CONTROL PRESSED\n");
-    mouseSwitch = !mouseSwitch;
+    _captureMouse = !_captureMouse;
     leastInterval = 0.0f;
   }
 
@@ -584,19 +583,18 @@ int Engine::Main()
     {
       static float mouseSensMult = 2.5f;
       ImGui::Begin("CrappyEngine Settings");
-      ImGui::Text("Dear ImGUI DIRTY integration");
-      //ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
-      //ImGui::Checkbox("Another Window", &show_another_window);
+      ImGui::Text("Dear ImGUI DIRTY integration\nPress RIGHT CTRL to show mouse cursor.");
+      ImGui::Checkbox("Show Mirror", &showMirror);      // Edit bools storing our window open/close state
 
       ImGui::SliderFloat("Mouse sensitivity", &mouseSensMult, 0.0f, 10.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
       _camera._mouseSensitivity = mouseSensMult / 100.0f;
-      ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
+      ImGui::ColorEdit4("clear color", (float*)&clear_color); // Edit 3 floats representing a color
 
-      if (ImGui::Button("Show Mirror"))
+      /*if (ImGui::Button("Show Mirror"))
         showMirror = !showMirror;
       ImGui::SameLine();
       const char* truestr = "true"; const char* falsestr = "false";
-      ImGui::Text("Show mirror = %s", showMirror ? truestr : falsestr);
+      ImGui::Text("Show mirror = %s", showMirror ? truestr : falsestr);*/
 
       ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
       ImGui::End();
