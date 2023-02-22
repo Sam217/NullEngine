@@ -127,12 +127,14 @@ std::vector<std::shared_ptr<Texture>> Model::LoadMaterialTextures(const aiMateri
     }
     else
     {
-      std::shared_ptr<Texture> tex = std::make_shared<Texture>(typeName, _flippedTextures);
-      tex->SetPath(aipath.C_Str());
+      std::string path;
       if (_texturesDirectory.empty())
-        tex->Load(aipath.C_Str(), _directory);
+        path = _directory + "/" + aipath.C_Str();
       else
-        tex->Load(aipath.C_Str(), _texturesDirectory);
+        path = _texturesDirectory + "/" + aipath.C_Str();
+      std::shared_ptr<Texture> tex = std::make_shared<Texture>(typeName, path, GL_REPEAT, _flippedTextures);
+      //tex->SetPath(aipath.C_Str());
+      tex->Load();
 
       textures.push_back(tex);
       loaded_textures[aipath.C_Str()] = tex;

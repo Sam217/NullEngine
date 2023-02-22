@@ -472,10 +472,10 @@ NULLENGINE_API int Depth_testing_main()
   unsigned int floorTexture = loadTexture(FileSystem::getPath(root + "resources/textures/metal.png").c_str());
   //unsigned int grassTexture2 = loadTexture(FileSystem::getPath(root + "resources/textures/grass.png").c_str());
 
-  NullEngine::Texture grassTexture("grass", true);
-  grassTexture.Load("resources/textures/grass.png", root, GL_CLAMP_TO_EDGE);
-  NullEngine::Texture redWindow("redWin", true);
-  redWindow.Load("resources/textures/blending_transparent_window.png", root, GL_CLAMP_TO_EDGE);
+  NullEngine::Texture grassTexture("grass", root + "resources/textures/grass.png", GL_CLAMP_TO_EDGE, true);
+  grassTexture.Load();
+  NullEngine::Texture redWindow("redWin", root + "resources/textures/blending_transparent_window.png", GL_CLAMP_TO_EDGE, true);
+  redWindow.Load();
 
   // shader configuration
   // --------------------

@@ -43,7 +43,7 @@ void Engine::Framebuffer_size_callback(GLFWwindow* window, int width, int height
 void Engine::Mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
   // if set, we pass inputs only to ImGUI
-  if (_engineContext->_io->WantCaptureMouse)
+  if (!_engineContext->_captureMouse || _engineContext->_io->WantCaptureMouse)
   {
     glfwSetInputMode(_engineContext->_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     return;
@@ -56,7 +56,7 @@ void Engine::Mouse_callback(GLFWwindow* window, double xpos, double ypos)
 void Engine::Scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
   // if set, we pass inputs only to ImGUI
-  if (_engineContext->_io->WantCaptureMouse)
+  if (!_engineContext->_captureMouse || _engineContext->_io->WantCaptureMouse)
   {
     glfwSetInputMode(_engineContext->_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     return;
@@ -74,7 +74,6 @@ void Engine::processInput(float dt)
 {
   _engineContext = this;
   static float leastInterval = 0.0f;
-  static bool mouseSwitch = true;
   leastInterval += dt;
 
   if (glfwGetKey(_window, GLFW_KEY_RIGHT_CONTROL) == GLFW_PRESS && leastInterval > 0.2f)
@@ -84,10 +83,10 @@ void Engine::processInput(float dt)
 
     // Set mouse input accordingly
     // const int hideCursor = io.WantCaptureMouse ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED;
-    const int hideCursor = mouseSwitch ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED;
+    const int hideCursor = _captureMouse ? GLFW_CURSOR_NORMAL : GLFW_CURSOR_DISABLED;
     glfwSetInputMode(_window, GLFW_CURSOR, hideCursor);
     OutputDebugStringW(L"RIGHT CONTROL PRESSED\n");
-    mouseSwitch = !mouseSwitch;
+    _captureMouse = !_captureMouse;
     leastInterval = 0.0f;
   }
 
@@ -196,23 +195,32 @@ int Engine::Main()
   InitImGui();
 
   // obtain resources path
-  std::string root = R"(..\Resources\)";
-  std::string container_tex_src = "container.jpg";
-  std::string face_tex_src("awesomeface.png");
+  std::string root = R"(../Resources/)";
+
   // texture loading from image
+  Texture texture1("container", root + "container.jpg");
+  Texture texture2("AwesomeFace", root + "awesomeface.png", true);
+  texture1.Load();
+  texture2.Load();
 
-  Texture texture1("container");
-  Texture texture2("AwesomeFace", true);
-  texture1.Load(container_tex_src, root, GL_REPEAT);
-  texture2.Load(face_tex_src, root, GL_REPEAT);
+  Texture containerDiffuseMap("containerWood", root + "container2.png");
+  Texture containerSpecularMap("containerSteelBorder", root + "container2_specular.png");
+  Texture containerEmissionMap("containerEmission", root + "matrix_container.png");
+  containerDiffuseMap.Load();
+  containerSpecularMap.Load();
+  containerEmissionMap.Load();
 
-  Texture containerDiffuseMap("containerWood");
-  Texture containerSpecularMap("containerSteelBorder");
-  Texture containerEmissionMap("containerEmission");
-  containerDiffuseMap.Load("container2.png", root, GL_REPEAT);
-  containerSpecularMap.Load("container2_specular.png", root, GL_REPEAT);
-  containerEmissionMap.Load("matrix_container.jpg", root, GL_REPEAT);
-  //containerSpecularMap.Load(root + "lighting_maps_specular_color.png", GL_REPEAT);
+  std::vector<std::string> faces
+  {
+    root + "skybox/right.jpg",
+    root + "skybox/left.jpg",
+    root + "skybox/top.jpg",
+    root + "skybox/bottom.jpg",
+    root + "skybox/front.jpg",
+    root + "skybox/back.jpg"
+  };
+  CubeMap skyBox("LearnOpenGLskyBox", faces);
+  skyBox.Load();
 
   Model guitarBag("../Resources/backpack/backpack.obj", nullptr, true);
   Model singapore("../Resources/singapore/untitled.obj");
@@ -222,10 +230,16 @@ int Engine::Main()
   std::string shaderRoot = "../LearnOpenGL_guide/shaders/";
   Shader shaderSingleColor((shaderRoot + "2.stencil_testing.vs").c_str(), (shaderRoot + "2.stencil_single_color.fs").c_str());
 
-  unsigned int indices[] = {
-        0, 1, 2, // first triangle
-        3, 0, 2  // second triangle
-  };
+  // Set skybox Vertex buffers
+  unsigned skyboxVAO, skyboxVBO;
+  glGenVertexArrays(1, &skyboxVAO);
+  glBindVertexArray(skyboxVAO);
+  glGenBuffers(1, &skyboxVBO);
+  glBindBuffer(GL_ARRAY_BUFFER, skyboxVBO);
+  auto& skyboxVertices = _vertices[9];
+  glBufferData(GL_ARRAY_BUFFER, skyboxVertices.size() * sizeof(float), skyboxVertices.data(), GL_STATIC_DRAW);
+  glEnableVertexAttribArray(0);
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 
   // Set buffers
   unsigned int VAOs[2];
@@ -246,9 +260,6 @@ int Engine::Main()
 
   glBindBuffer(GL_ARRAY_BUFFER, VBOs[0]);
   glBufferData(GL_ARRAY_BUFFER, cubeOb.size() * sizeof(float), cubeOb.data(), GL_STATIC_DRAW);
-
-  /*glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO[0]);
-  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);*/
 
   // 3. then set our vertex attributes pointers
   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
@@ -437,6 +448,7 @@ int Engine::Main()
 
   auto& lightShader = _shaders[2];
   auto& lightSourceCube = _shaders[3];
+  auto& skyBoxShader = _shaders[5];
 
   std::vector<Shader*> activeShaders = {lightShader.get(), lightSourceCube.get()};// _shaders[0].get()};
 
@@ -584,19 +596,18 @@ int Engine::Main()
     {
       static float mouseSensMult = 2.5f;
       ImGui::Begin("CrappyEngine Settings");
-      ImGui::Text("Dear ImGUI DIRTY integration");
-      //ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
-      //ImGui::Checkbox("Another Window", &show_another_window);
+      ImGui::Text("Dear ImGUI DIRTY integration\nPress RIGHT CTRL to show mouse cursor.");
+      ImGui::Checkbox("Show Mirror", &showMirror);      // Edit bools storing our window open/close state
 
       ImGui::SliderFloat("Mouse sensitivity", &mouseSensMult, 0.0f, 10.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
       _camera._mouseSensitivity = mouseSensMult / 100.0f;
-      ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
+      ImGui::ColorEdit4("clear color", (float*)&clear_color); // Edit 3 floats representing a color
 
-      if (ImGui::Button("Show Mirror"))
+      /*if (ImGui::Button("Show Mirror"))
         showMirror = !showMirror;
       ImGui::SameLine();
       const char* truestr = "true"; const char* falsestr = "false";
-      ImGui::Text("Show mirror = %s", showMirror ? truestr : falsestr);
+      ImGui::Text("Show mirror = %s", showMirror ? truestr : falsestr);*/
 
       ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
       ImGui::End();
@@ -627,6 +638,18 @@ int Engine::Main()
 
       glm::mat4 projection = glm::perspective(glm::radians(cam._fov), texWidth / texHeight, 0.1f, 100.0f);
       //projection = glm::ortho(-(float)_width / 256, (float)_width / 256, -(float)_height / 256, (float)_height / 256, -100.1f, 100.0f);
+
+      // draw skybox first
+      glDepthMask(GL_FALSE);
+      skyBoxShader->Use();
+      // ... set view and projection matrix
+      skyBoxShader->SetMat4("view", glm::mat4(glm::mat3(view)));
+      skyBoxShader->SetMat4("projection", projection);
+      glBindVertexArray(skyboxVAO);
+      skyBox.Use();
+      glDrawArrays(GL_TRIANGLES, 0, 36);
+      glDepthMask(GL_TRUE);
+      // ... draw rest of the scene
 
       // set lighting properties
       lightSourceCube->Use();
@@ -1192,6 +1215,36 @@ void Engine::CreateShaders()
       }
   )";
 
+  std::string skyBoxVSsrc = R"(
+      #version 330 core
+      layout (location = 0) in vec3 aPos;
+
+      out vec3 TexCoords;
+
+      uniform mat4 projection;
+      uniform mat4 view;
+
+      void main()
+      {
+          TexCoords = aPos;
+          gl_Position = projection * view * vec4(aPos, 1.0);
+      }
+  )";
+
+  std::string skyBoxFSsrc = R"(
+    #version 330 core
+    out vec4 FragColor;
+
+    in vec3 TexCoords;
+
+    uniform samplerCube skybox;
+
+    void main()
+    {
+        FragColor = texture(skybox, TexCoords);
+    }
+  )";
+
   std::unique_ptr<Shader> simpleShader            = std::make_unique<Shader>(simpleVScode, simpleFScode);
   std::unique_ptr<Shader> effectNegative          = std::make_unique<Shader>(simpleVScode, simpleFSnegative);
   std::unique_ptr<Shader> effectGreyScale         = std::make_unique<Shader>(simpleVScode, simpleFSgscale);
@@ -1200,11 +1253,14 @@ void Engine::CreateShaders()
   std::unique_ptr<Shader> effectBlur              = std::make_unique<Shader>(simpleVScode, fsBlur);
   std::unique_ptr<Shader> effectEdge              = std::make_unique<Shader>(simpleVScode, fsEdge);
 
+  std::unique_ptr<Shader> skyBoxS                 = std::make_unique<Shader>(skyBoxVSsrc, skyBoxFSsrc);
+
   _shaders.push_back(std::move(shader1));
   _shaders.push_back(std::move(shader2));
   _shaders.push_back(std::move(shaderL));
   _shaders.push_back(std::move(shaderLs));
   _shaders.push_back(std::move(shaderGouraud));
+  _shaders.push_back(std::move(skyBoxS));
 
   // simple shader to render screen quad (idx = 5)
   _effects.push_back(std::move(simpleShader));
@@ -1424,6 +1480,52 @@ void Engine::InitVertices()
     -0.5f,  1.0f,  0.0f, 1.0f
   };
 
+  std::vector<float> skyboxVertices = {
+    // positions
+    // all NEG Z -> Z- side (back)
+    -1.0f,  1.0f, -1.0f,
+    -1.0f, -1.0f, -1.0f,
+     1.0f, -1.0f, -1.0f,
+     1.0f, -1.0f, -1.0f,
+     1.0f,  1.0f, -1.0f,
+    -1.0f,  1.0f, -1.0f,
+    // all NEG -> X- side (left)
+    -1.0f, -1.0f,  1.0f,
+    -1.0f, -1.0f, -1.0f,
+    -1.0f,  1.0f, -1.0f,
+    -1.0f,  1.0f, -1.0f,
+    -1.0f,  1.0f,  1.0f,
+    -1.0f, -1.0f,  1.0f,
+    // all POS X -> X+ side (right)
+     1.0f, -1.0f, -1.0f,
+     1.0f, -1.0f,  1.0f,
+     1.0f,  1.0f,  1.0f,
+     1.0f,  1.0f,  1.0f,
+     1.0f,  1.0f, -1.0f,
+     1.0f, -1.0f, -1.0f,
+     // all POS Z -> Z+ side (front)
+    -1.0f, -1.0f,  1.0f,
+    -1.0f,  1.0f,  1.0f,
+     1.0f,  1.0f,  1.0f,
+     1.0f,  1.0f,  1.0f,
+     1.0f, -1.0f,  1.0f,
+    -1.0f, -1.0f,  1.0f,
+    // all POS Y -> Y+ side (top)
+    -1.0f,  1.0f, -1.0f,
+     1.0f,  1.0f, -1.0f,
+     1.0f,  1.0f,  1.0f,
+     1.0f,  1.0f,  1.0f,
+    -1.0f,  1.0f,  1.0f,
+    -1.0f,  1.0f, -1.0f,
+    // all NEG Y -> Y- side (bottom)
+    -1.0f, -1.0f, -1.0f,
+    -1.0f, -1.0f,  1.0f,
+     1.0f, -1.0f, -1.0f,
+     1.0f, -1.0f, -1.0f,
+    -1.0f, -1.0f,  1.0f,
+     1.0f, -1.0f,  1.0f
+  };
+
   _vertices.push_back(std::move(verticesa));
   _vertices.push_back(std::move(verticesb));
   _vertices.push_back(std::move(vertices1));
@@ -1433,6 +1535,7 @@ void Engine::InitVertices()
   _vertices.push_back(std::move(cubeVertNormalTex));
   _vertices.push_back(std::move(screenQuad));
   _vertices.push_back(std::move(mirrorQuad));
+  _vertices.push_back(std::move(skyboxVertices));
 }
 
 void Engine::InitImGui()
