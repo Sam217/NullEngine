@@ -10,6 +10,15 @@
 
 struct ImGuiIO;
 
+// Basic Phong-shading material
+struct Material
+{
+  glm::vec3 ambient;
+  glm::vec3 diffuse;
+  glm::vec3 specular;
+  float shininess;
+};
+
 namespace NullEngine {
 
 
@@ -52,6 +61,7 @@ namespace NullEngine {
 		const Shader* _currentEffect = nullptr;
 		//!
 		std::vector<std::vector<float>> _vertices;
+		std::vector<Material> _materials;
 
 	public:
 		//! Dtor
@@ -66,6 +76,7 @@ namespace NullEngine {
 		void InitGLFW();
 		//! Create shaders
 		void CreateShaders();
+		void InitPhongMaterials();
 		//!
 		void InitVertices();
 		void InitImGui();
