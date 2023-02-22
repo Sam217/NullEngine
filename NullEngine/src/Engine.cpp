@@ -264,6 +264,9 @@ int Engine::Main()
   InitVertices();
   InitImGui();
 
+  InitPositions();
+  InitPhongMaterials();
+
   // obtain resources path
   std::string root = R"(../Resources/)";
 
@@ -466,51 +469,6 @@ int Engine::Main()
   //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
   //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-  /*glm::vec3 cubePositions[] = {
-    glm::vec3(0.0f,  0.0f,  0.0f),
-    glm::vec3(2.0f,  5.0f, -15.0f),
-    glm::vec3(-1.5f, -2.2f, -2.5f),
-    glm::vec3(-3.8f, -2.0f, -12.3f),
-    glm::vec3(2.4f, -0.4f, -3.5f),
-    glm::vec3(-1.7f,  3.0f, -7.5f),
-    glm::vec3(1.3f, -2.0f, -2.5f),
-    glm::vec3(1.5f,  2.0f, -2.5f),
-    glm::vec3(1.5f,  0.2f, -1.5f),
-    glm::vec3(-1.3f,  1.0f, -1.5f)
-  };*/
-
-  /*glm::vec3 cubePositions[] = {
-    glm::vec3(2.0f,  0.0f, -5.0f),
-    glm::vec3(-3.0f, 2.0f, 10.0f)
-  };*/
-
-  glm::vec3 cubePositions[] = {
-      glm::vec3(0.0f,  0.0f,  0.0f),
-      glm::vec3(2.0f,  5.0f, -15.0f),
-      glm::vec3(-1.5f, -2.2f, -2.5f),
-      glm::vec3(-3.8f, -2.0f, -12.3f),
-      glm::vec3(2.4f, -0.4f, -3.5f),
-      glm::vec3(-1.7f,  3.0f, -7.5f),
-      glm::vec3(1.3f, -2.0f, -2.5f),
-      glm::vec3(1.5f,  2.0f, -2.5f),
-      glm::vec3(1.5f,  0.2f, -1.5f),
-      glm::vec3(-1.3f,  1.0f, -1.5f)
-  };
-
-  //glm::vec3 cubePositions[] = {
-  //  glm::vec3(0.0f,  0.0f, 0.0f),
-  //  glm::vec3(1.2f, 1.0f, 2.0f)
-  //};
-
-  glm::vec3 pointLightPositions[] = {
-  glm::vec3(0.7f,  0.2f,  2.0f),
-  glm::vec3(2.3f, -3.3f, -4.0f),
-  glm::vec3(-4.0f,  2.0f, -12.0f),
-  glm::vec3(0.0f,  0.0f, -3.0f)
-  };
-
-  //auto& lightPos = cubePositions[1];
-  glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
 
   _shaders[0]->Use();
   _shaders[0]->SetInt("texture1", 0);
@@ -529,8 +487,6 @@ int Engine::Main()
   glFrontFace(GL_CCW);
 
   float time = 0.0f, timeLast = 0.0f, deltap = 0.0f;
-
-  InitPhongMaterials();
 
   // randomize some cube positions
   std::random_device r;
@@ -638,6 +594,7 @@ int Engine::Main()
 
       // draw skybox first
       glDepthMask(GL_FALSE);
+      glStencilMask(0);
       skyBoxShader->Use();
       // ... set view and projection matrix
       skyBoxShader->SetMat4("view", glm::mat4(glm::mat3(view)));
@@ -646,6 +603,7 @@ int Engine::Main()
       skyBox.Use();
       glDrawArrays(GL_TRIANGLES, 0, 36);
       glDepthMask(GL_TRUE);
+      glStencilMask(0xFF);
       // ... draw rest of the scene
 
       // set lighting properties
@@ -658,11 +616,11 @@ int Engine::Main()
 
       float posTime = time / 3.0f;
       float radius = 5.0f;
-      lightPos = cubePositions[0] + glm::vec3(radius * cos(posTime) / 2, radius * cos(posTime) / 3, radius * sin(posTime));
+      _positions.lightPos = _positions.cubePositions[0] + glm::vec3(radius * cos(posTime) / 2, radius * cos(posTime) / 3, radius * sin(posTime));
       glm::vec3 newLightPos(-0.2f, -1.0f, -0.3f);
 
       glm::mat4 model(1.0f);
-      model = glm::translate(model, lightPos);
+      model = glm::translate(model, _positions.lightPos);
       float angle;
       float rotTime = time / 5.0f;
       angle = -20.0f * 15.5f;
@@ -701,7 +659,7 @@ int Engine::Main()
       lightShader->SetVec3("dirLight.direction", glm::vec3(0.0f, -50.0f, 0.0f));
 
       //lightShader->SetVec3("pointLight.direction", newLightPos);
-      lightShader->SetVec3("pointLight.position", lightPos);
+      lightShader->SetVec3("pointLight.position", _positions.lightPos);
       // ambient part should not be there
       lightShader->SetVec3("pointLight.ambient", glm::vec3(0.0f) * (float)(_lightAmbIntensity * _lightColorIntensity) / 100.0f / 100.0f);
       lightShader->SetVec3("pointLight.diffuse", glm::vec3(1.0f) * (float)(_lightDiffIntensity * _lightColorIntensity) / 100.0f / 100.0f);
@@ -720,7 +678,7 @@ int Engine::Main()
 
       for (int i = 0; i < 4; ++i)
       {
-        movedPosisitons[i] = pointLightPositions[i] + glm::vec3(randRadius[i] * cos(randsgn[i] * posTime), randRadius[i] * cos(posTime), randRadius[i] * sin(randsgn[3 - i] * posTime));
+        movedPosisitons[i] = _positions.pointLightPositions[i] + glm::vec3(randRadius[i] * cos(randsgn[i] * posTime), randRadius[i] * cos(posTime), randRadius[i] * sin(randsgn[3 - i] * posTime));
         s.seekp(cur);
         s << i << "].position";
         s.put('\0');
@@ -817,7 +775,7 @@ int Engine::Main()
            //lightShader->SetVec3("light.direction", glm::vec3(view * glm::vec4(newLightPos, 1.0f)));
 
           model = glm::mat4(1.0f);
-          model = glm::translate(model, cubePositions[0] + randvecs[i] + glm::normalize(randvecs[i]) * 2.0f);
+          model = glm::translate(model, _positions.cubePositions[0] + randvecs[i] + glm::normalize(randvecs[i]) * 2.0f);
           //model = glm::translate(model, cubePositions[i]);
           model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f) * 1.0f);
 
@@ -1587,6 +1545,55 @@ void Engine::InitImGui()
   bool show_demo_window = true;
   bool show_another_window = false;
   ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+}
+
+void Engine::InitPositions()
+{
+  /*glm::vec3 cubePositions[] = {
+    glm::vec3(0.0f,  0.0f,  0.0f),
+    glm::vec3(2.0f,  5.0f, -15.0f),
+    glm::vec3(-1.5f, -2.2f, -2.5f),
+    glm::vec3(-3.8f, -2.0f, -12.3f),
+    glm::vec3(2.4f, -0.4f, -3.5f),
+    glm::vec3(-1.7f,  3.0f, -7.5f),
+    glm::vec3(1.3f, -2.0f, -2.5f),
+    glm::vec3(1.5f,  2.0f, -2.5f),
+    glm::vec3(1.5f,  0.2f, -1.5f),
+    glm::vec3(-1.3f,  1.0f, -1.5f)
+  };*/
+
+  /*glm::vec3 cubePositions[] = {
+    glm::vec3(2.0f,  0.0f, -5.0f),
+    glm::vec3(-3.0f, 2.0f, 10.0f)
+  };*/
+
+  _positions.cubePositions = {
+      glm::vec3(0.0f,  0.0f,  0.0f),
+      glm::vec3(2.0f,  5.0f, -15.0f),
+      glm::vec3(-1.5f, -2.2f, -2.5f),
+      glm::vec3(-3.8f, -2.0f, -12.3f),
+      glm::vec3(2.4f, -0.4f, -3.5f),
+      glm::vec3(-1.7f,  3.0f, -7.5f),
+      glm::vec3(1.3f, -2.0f, -2.5f),
+      glm::vec3(1.5f,  2.0f, -2.5f),
+      glm::vec3(1.5f,  0.2f, -1.5f),
+      glm::vec3(-1.3f,  1.0f, -1.5f)
+  };
+
+  //glm::vec3 cubePositions[] = {
+  //  glm::vec3(0.0f,  0.0f, 0.0f),
+  //  glm::vec3(1.2f, 1.0f, 2.0f)
+  //};
+
+  _positions.pointLightPositions = {
+  glm::vec3(0.7f,  0.2f,  2.0f),
+  glm::vec3(2.3f, -3.3f, -4.0f),
+  glm::vec3(-4.0f,  2.0f, -12.0f),
+  glm::vec3(0.0f,  0.0f, -3.0f)
+  };
+
+  //auto& lightPos = cubePositions[1];
+  _positions.lightPos = {1.2f, 1.0f, 2.0f};
 }
 
 NULLENGINE_API void* CreateEngine()

@@ -25,6 +25,12 @@ namespace NullEngine {
 	class Engine : IEngine
 	{
 		friend class Camera;
+		struct Positions
+		{
+			std::vector<glm::vec3> cubePositions;
+			std::vector<glm::vec3> pointLightPositions;
+			glm::vec3 lightPos;
+		};
 
 	public:
 		static Engine* _engineContext;
@@ -62,6 +68,7 @@ namespace NullEngine {
 		//!
 		std::vector<std::vector<float>> _vertices;
 		std::vector<Material> _materials;
+		Positions _positions;
 
 	public:
 		//! Dtor
@@ -77,6 +84,7 @@ namespace NullEngine {
 		//! Create shaders
 		void CreateShaders();
 		void InitPhongMaterials();
+		void InitPositions();
 		//!
 		void InitVertices();
 		void InitImGui();
