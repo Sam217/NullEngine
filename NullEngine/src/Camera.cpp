@@ -194,9 +194,12 @@ void Camera::ProcessMouseMovement(double xpos, double ypos, bool constrainPitch 
   UpdateVectors();
 }
 
-void Camera::ProcessMouseScroll(float yoffset)
+void Camera::ProcessMouseScroll(float yoffset, bool boost)
 {
-  _movementSpeed += (float)yoffset;
+  if (boost)
+    _movementSpeed += (float)yoffset;
+  else
+    _movementSpeed += (float)yoffset / 10.0f;
 
   constexpr float MaxSpeed = 100.0f;
   if (_movementSpeed > MaxSpeed)

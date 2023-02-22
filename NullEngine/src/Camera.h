@@ -93,7 +93,7 @@ public:
   //! Process mouse input
   void ProcessMouseMovement(const GLFWwindow* wnd, double xpos, double ypos, bool constrainPitch = true);
   void ProcessMouseMovement(double xoffset, double yoffset, bool constrainPitch = true);
-  void ProcessMouseScroll(float yoffset);
+  void ProcessMouseScroll(float yoffset, bool boost = false);
   void ProcessMouseScrollZoom(float yoffset);
   const glm::vec3& Position() const { return _pos; }
   const float& Zoom() const { return _fov; }

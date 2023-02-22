@@ -59,7 +59,10 @@ void Engine::Scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
   if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
     _engineContext->_camera.ProcessMouseScrollZoom((float)yoffset);
   else
-    _engineContext->_camera.ProcessMouseScroll((float)yoffset);
+  {
+    bool boost = glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS;
+    _engineContext->_camera.ProcessMouseScroll((float)yoffset, boost);
+  }
 }
 
 void Engine::processInput(float dt)
