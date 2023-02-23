@@ -286,14 +286,16 @@ int Engine::Main()
   containerSpecularMap.Load();
   containerEmissionMap.Load();
 
+  std::string imgExt = ".jpg";
+  std::string imgExt2 = ".png";
   std::vector<std::string> faces
   {
-    root + "skybox/right.jpg",
-    root + "skybox/left.jpg",
-    root + "skybox/top.jpg",
-    root + "skybox/bottom.jpg",
-    root + "skybox/front.jpg",
-    root + "skybox/back.jpg"
+    root + "skybox/right" + imgExt,
+    root + "skybox/left" + imgExt,
+    root + "skybox/top" + imgExt,
+    root + "skybox/bottom" + imgExt,
+    root + "skybox/front" + imgExt,
+    root + "skybox/back" + imgExt
   };
   CubeMap skyBox("LearnOpenGLskyBox", faces);
   skyBox.Load();
