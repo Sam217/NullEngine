@@ -111,30 +111,23 @@ void Camera::ProcessKeyboard(Camera_Movement direction, float deltaTime)
     _pos -= cameraSpeed * _speedBoost * _up;
 }
 
-void Camera::ProcessMouseMovement(const GLFWwindow* wnd, double xpos, double ypos, bool constrainPitch)
+void Camera::ProcessMouseMovement(const GLFWwindow* wnd, double xpos, double ypos)
 {
   //static float lastX, lastY;
-  static bool firstMouse = true;
-  if (firstMouse)
+  if (_resetMouse)
   {
     _mouseLastX = (float)xpos;
     _mouseLastY = (float)ypos;
-    firstMouse = false;
+    _resetMouse = false;
   }
 
   // clamp the pitch to avoid LookAt flip
-  if (constrainPitch)
+  if (_constrainPitch)
   {
     if (_pitch > 89.9f)
-    {
       _pitch = 89.9f;
-      _pitch2 = 89.9f;
-    }
     else if (_pitch < -89.9f)
-    {
       _pitch = -89.9f;
-      _pitch2 = -89.9f;
-    }
   }
 
   float xoffset = (float)xpos - _mouseLastX;

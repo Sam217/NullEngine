@@ -77,7 +77,8 @@ namespace NullEngine {
 		virtual void Init() override;
 		//! Main
 		virtual int Main() override;
-
+		//! GetGlfwWindow
+		GLFWwindow* GetGlfwWindow() { return _window; }
 	private:
 		//! Init GL Framework
 		void InitGLFW();
@@ -90,6 +91,7 @@ namespace NullEngine {
 		void InitImGui();
 		//! Process input
 		void processInput(float dt);
+		void ShowAppDockSpace(bool* p_open);
 		//************************************
 		// Method:    Framebuffer_size_callback
 		// FullName:  NullEngine::Engine::Framebuffer_size_callback

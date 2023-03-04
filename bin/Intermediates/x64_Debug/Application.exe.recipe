@@ -2,10 +2,10 @@
 <Project>
   <ProjectOutputs>
     <ProjectOutput>
-      <FullPath>D:\MyDrive\MEGAsync\source\repos\LearnOpenGL\NullEngine\bin\x64_Debug\NullEngine.dll</FullPath>
+      <FullPath>F:\MEGAsync\source\repos\LearnOpenGL\NullEngine\bin\x64_Debug\NullEngine.dll</FullPath>
     </ProjectOutput>
     <ProjectOutput>
-      <FullPath>D:\MyDrive\MEGAsync\source\repos\LearnOpenGL\NullEngine\bin\x64_Debug\Application.exe</FullPath>
+      <FullPath>F:\MEGAsync\source\repos\LearnOpenGL\NullEngine\bin\x64_Debug\Application.exe</FullPath>
     </ProjectOutput>
   </ProjectOutputs>
   <ContentFiles />

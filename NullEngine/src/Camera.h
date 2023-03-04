@@ -61,6 +61,7 @@ private:
 public:
   //! Mouse sensitivity
   float _mouseSensitivity = SENSITIVITY;
+  bool _constrainPitch = true;
   //! FOV
   float _fov = ZOOM;
   //! Euler angles
@@ -91,10 +92,11 @@ public:
   void ProcessKeyboard(const GLFWwindow* wnd, float dt);
   void ProcessKeyboard(Camera_Movement direction, float deltaTime);
   //! Process mouse input
-  void ProcessMouseMovement(const GLFWwindow* wnd, double xpos, double ypos, bool constrainPitch = true);
+  void ProcessMouseMovement(const GLFWwindow* wnd, double xpos, double ypos);
   void ProcessMouseMovement(double xoffset, double yoffset, bool constrainPitch = true);
   void ProcessMouseScroll(float yoffset, bool boost = false);
   void ProcessMouseScrollZoom(float yoffset);
+  inline void ResetMouse() { _resetMouse = true; }
   const glm::vec3& Position() const { return _pos; }
   const float& Zoom() const { return _fov; }
 
@@ -103,6 +105,7 @@ private:
   //! last mouse positions
   float _mouseLastX = 0.0f;
   float _mouseLastY = 0.0f;
+  bool _resetMouse = true;
 
   //! Update camera vectors
   void UpdateVectors();

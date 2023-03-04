@@ -5,6 +5,7 @@
 
 #include <glad/glad.h>
 #include <glfw3.h>
+#include <GLFW/glfw3native.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -19,6 +20,28 @@
 #include "Model.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb/stb_image.h"
+
+
+void ShowDockingDisabledMessage()
+{
+  HWND wnd = glfwGetWin32Window(NullEngine::Engine::_engineContext->GetGlfwWindow());
+  MessageBoxA(wnd, "Docking not enabled.", "Dockspace disabled!", MB_OK);
+}
+
+// Helper to display a little (?) mark which shows a tooltip when hovered.
+// In your own code you may want to display an actual icon if you are using a merged icon fonts (see docs/FONTS.md)
+static void HelpMarker(const char* desc)
+{
+  ImGui::TextDisabled("(?)");
+  if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort))
+  {
+    ImGui::BeginTooltip();
+    ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+    ImGui::TextUnformatted(desc);
+    ImGui::PopTextWrapPos();
+    ImGui::EndTooltip();
+  }
+}
 
 namespace NullEngine
 {
@@ -35,12 +58,26 @@ void Engine::Framebuffer_size_callback(GLFWwindow* window, int width, int height
 void Engine::Mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
   // if set, we pass inputs only to ImGUI
+  static double lastX, lastY;
+  static bool mouseSaved = false;
   if (!_engineContext->_captureMouse || _engineContext->_io->WantCaptureMouse)
   {
     glfwSetInputMode(_engineContext->_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    _engineContext->_camera.ResetMouse();
+    if (!mouseSaved)
+    {
+      lastX = xpos;
+      lastY = ypos;
+    }
+    mouseSaved = true;
     return;
   }
 
+  if (mouseSaved)
+  {
+    //glfwSetCursorPos(window, lastX, lastY);
+    mouseSaved = false;
+  }
   //glfwSetInputMode(_engineContext->_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
   _engineContext->_camera.ProcessMouseMovement(window, xpos, ypos);
 }
@@ -479,11 +516,12 @@ int Engine::Main()
   _shaders[0]->SetInt("texture1", 0);
   _shaders[0]->SetInt("texture2", 1);
 
-  auto& lightShader = _shaders[2];
-  auto& lightSourceCube = _shaders[3];
-  auto& skyBoxShader = _shaders[5];
+  Shader* objectShader = _shaders[2].get();
+  Shader* lightSourceCube = _shaders[3].get();
+  Shader* skyBoxShader = _shaders[5].get();
+  Shader* cubeMapReflect = _shaders[6].get();
 
-  std::vector<Shader*> activeShaders = {lightShader.get(), lightSourceCube.get()};// _shaders[0].get()};
+  std::vector<Shader*> activeShaders = {objectShader, lightSourceCube};// _shaders[0].get()};
 
   // this enables Z-buffer so that faces overlap correctly when projected to the screen
   glEnable(GL_DEPTH_TEST);
@@ -516,21 +554,22 @@ int Engine::Main()
     randRadius[i] = (int)uni_rad(gen);
   }
 
-  lightShader->Use();
-  lightShader->SetInt("material.diffuse", 0);
+  objectShader->Use();
+  objectShader->SetInt("material.diffuse", 0);
 
   glActiveTexture(GL_TEXTURE0);
   containerDiffuseMap.Use();
 
-  lightShader->SetInt("material.specular", 1);
+  objectShader->SetInt("material.specular", 1);
   glActiveTexture(GL_TEXTURE1);
   containerSpecularMap.Use();
 
-  lightShader->SetInt("material.emissive", 2);
+  objectShader->SetInt("material.emissive", 2);
   glActiveTexture(GL_TEXTURE2);
   containerEmissionMap.Use();
 
   glm::vec4 clear_color = {0.4f, 0.55f, 0.9f, 0.75f};
+  glm::vec4 highlight_color = {0.4f, 0.55f, 0.9f, 0.75f};
 
   // Time measuring
   float frameBeg = (float)glfwGetTime();
@@ -551,14 +590,68 @@ int Engine::Main()
     ImGui::NewFrame();
 
     // 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
+    static bool showContainers = false;
+    static float containersYOffset = 0.0f;
+    static bool highlight = false;
+    static float highlightAmount = 0.01f;
+
     {
+      //ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
       static float mouseSensMult = 2.5f;
+      static bool showDockSpace = false;
+
+      if (showDockSpace)
+        ShowAppDockSpace(&showDockSpace);
       ImGui::Begin("CrappyEngine Settings");
       ImGui::Text("Dear ImGUI DIRTY integration\nPress RIGHT CTRL to show mouse cursor.");
+      ImGui::Checkbox("Enable Dockspace", &showDockSpace);
       ImGui::Checkbox("Show Mirror", &showMirror);      // Edit bools storing our window open/close state
+      ImGui::SameLine();
+      ImGui::Checkbox("Draw containers", &showContainers);
+      ImGui::SameLine();
+      ImGui::Checkbox("Highlight objects", &highlight);
+      if (highlight)
+      {
+        ImGui::SliderFloat("Highlight strength", &highlightAmount, 0.0f, 1.0f);
+        ImGui::ColorEdit4("Highlight color", (float*)&highlight_color);
+      }
 
+      if (showContainers)
+        ImGui::SliderFloat("Containers Y-offset from origin", &containersYOffset, -50.0f, 50.0f);
+
+      if (ImGui::CollapsingHeader("Shader Configuration"))
+      {
+        //if (ImGui::TreeNode("Configuration##2"))
+        {
+          ImGui::SeparatorText("Shader options");
+          static int shaderObj_current;
+          static int shaderCont_current;
+          static const char* items[] = {"Phong classic", "CubeMap reflection"};
+          static const char* items2[] = {"CubeMap reflection", "Phong classic"};
+          ImGui::Combo("Object shader", &shaderObj_current, items, _countof(items), 2);
+          ImGui::SameLine(); HelpMarker(
+            "Select which shader to use for objects loaded with assimp lib.");
+          ImGui::Combo("Containers shader", &shaderCont_current, items2, _countof(items2), 2);
+          ImGui::SameLine(); HelpMarker(
+            "Select which shader to use for objects loaded with assimp lib.");
+
+          if (shaderObj_current == 0)
+            objectShader = _shaders[2].get();
+          else if (shaderObj_current == 1)
+            objectShader = _shaders[6].get();
+
+          if (shaderCont_current == 0)
+            cubeMapReflect = _shaders[6].get();
+          else if (shaderCont_current == 1)
+            cubeMapReflect = _shaders[2].get();
+        }
+
+        //ImGui::TreePop();
+      }
       ImGui::SliderFloat("Mouse sensitivity", &mouseSensMult, 0.0f, 10.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
       _camera._mouseSensitivity = mouseSensMult / 100.0f;
+
+      ImGui::Checkbox("Constrain mouse pitch", &_camera._constrainPitch);
       ImGui::ColorEdit4("clear color", (float*)&clear_color); // Edit 3 floats representing a color
 
       /*if (ImGui::Button("Show Mirror"))
@@ -638,14 +731,14 @@ int Engine::Main()
       glDrawArrays(GL_TRIANGLES, 0, 36);
 
       // draw material cube(s)
-      lightShader->Use();
-      lightShader->SetMat4("view", view);
-      lightShader->SetMat4("projection", projection);
+      objectShader->Use();
+      objectShader->SetMat4("view", view);
+      objectShader->SetMat4("projection", projection);
 
       shaderSingleColor.Use();
       shaderSingleColor.SetMat4("view", view);
       shaderSingleColor.SetMat4("projection", projection);
-      lightShader->Use();
+      objectShader->Use();
 
       glActiveTexture(GL_TEXTURE0);
       containerDiffuseMap.Use();
@@ -656,24 +749,24 @@ int Engine::Main()
       glActiveTexture(GL_TEXTURE2);
       containerEmissionMap.Use();
 
-      lightShader->SetVec3("viewPos", cam._pos);
+      objectShader->SetVec3("viewPos", cam._pos);
 
-      lightShader->SetVec3("dirLight.ambient", glm::vec3(0.1f)/* * (float)(_lightAmbIntensity  * _lightColorIntensity) / 100.0f / 100.0f*/);
-      lightShader->SetVec3("dirLight.diffuse", glm::vec3(0.0f)/* * (float)(_lightDiffIntensity * _lightColorIntensity) / 100.0f / 100.0f*/);
-      lightShader->SetVec3("dirLight.specular", glm::vec3(0.0f)/* * (float)(_lightSpecIntensity * _lightColorIntensity) / 100.0f / 100.0f*/);
-      lightShader->SetVec3("dirLight.direction", glm::vec3(0.0f, -50.0f, 0.0f));
+      objectShader->SetVec3("dirLight.ambient", glm::vec3(0.1f)/* * (float)(_lightAmbIntensity  * _lightColorIntensity) / 100.0f / 100.0f*/);
+      objectShader->SetVec3("dirLight.diffuse", glm::vec3(0.0f)/* * (float)(_lightDiffIntensity * _lightColorIntensity) / 100.0f / 100.0f*/);
+      objectShader->SetVec3("dirLight.specular", glm::vec3(0.0f)/* * (float)(_lightSpecIntensity * _lightColorIntensity) / 100.0f / 100.0f*/);
+      objectShader->SetVec3("dirLight.direction", glm::vec3(0.0f, -50.0f, 0.0f));
 
       //lightShader->SetVec3("pointLight.direction", newLightPos);
-      lightShader->SetVec3("pointLight.position", _positions.lightPos);
+      objectShader->SetVec3("pointLight.position", _positions.lightPos);
       // ambient part should not be there
-      lightShader->SetVec3("pointLight.ambient", glm::vec3(0.0f) * (float)(_lightAmbIntensity * _lightColorIntensity) / 100.0f / 100.0f);
-      lightShader->SetVec3("pointLight.diffuse", glm::vec3(1.0f) * (float)(_lightDiffIntensity * _lightColorIntensity) / 100.0f / 100.0f);
-      lightShader->SetVec3("pointLight.specular", glm::vec3(1.0f) * (float)(_lightSpecIntensity * _lightColorIntensity) / 100.0f / 100.0f);
+      objectShader->SetVec3("pointLight.ambient", glm::vec3(0.0f) * (float)(_lightAmbIntensity * _lightColorIntensity) / 100.0f / 100.0f);
+      objectShader->SetVec3("pointLight.diffuse", glm::vec3(1.0f) * (float)(_lightDiffIntensity * _lightColorIntensity) / 100.0f / 100.0f);
+      objectShader->SetVec3("pointLight.specular", glm::vec3(1.0f) * (float)(_lightSpecIntensity * _lightColorIntensity) / 100.0f / 100.0f);
 
 
-      lightShader->SetFloat("pointLight.constant", 1.0f);
-      lightShader->SetFloat("pointLight.linear", 0.09f);
-      lightShader->SetFloat("pointLight.quadratic", 0.032f);
+      objectShader->SetFloat("pointLight.constant", 1.0f);
+      objectShader->SetFloat("pointLight.linear", 0.09f);
+      objectShader->SetFloat("pointLight.quadratic", 0.032f);
 
       std::stringstream s;
       s << "pointLights[";
@@ -687,32 +780,32 @@ int Engine::Main()
         s.seekp(cur);
         s << i << "].position";
         s.put('\0');
-        lightShader->SetVec3(s.str(), movedPosisitons[i]);
+        objectShader->SetVec3(s.str(), movedPosisitons[i]);
 
         s.seekp(cur + std::streampos(3));
         s << "diffuse";
         s.put('\0');
-        lightShader->SetVec3(s.str(), glm::vec3(1.0f) * (float)(_lightDiffIntensity * _lightColorIntensity) / 100.0f / 100.0f);
+        objectShader->SetVec3(s.str(), glm::vec3(1.0f) * (float)(_lightDiffIntensity * _lightColorIntensity) / 100.0f / 100.0f);
 
         s.seekp(cur + std::streampos(3));
         s << "specular";
         s.put('\0');
-        lightShader->SetVec3(s.str(), glm::vec3(1.0f) * (float)(_lightSpecIntensity * _lightColorIntensity) / 100.0f / 100.0f);
+        objectShader->SetVec3(s.str(), glm::vec3(1.0f) * (float)(_lightSpecIntensity * _lightColorIntensity) / 100.0f / 100.0f);
 
         s.seekp(cur + std::streampos(3));
         s << "constant";
         s.put('\0');
-        lightShader->SetFloat(s.str(), 1.0f);
+        objectShader->SetFloat(s.str(), 1.0f);
 
         s.seekp(cur + std::streampos(3));
         s << "linear";
         s.put('\0');
-        lightShader->SetFloat(s.str(), 0.09f);
+        objectShader->SetFloat(s.str(), 0.09f);
 
         s.seekp(cur + std::streampos(3));
         s << "quadratic";
         s.put('\0');
-        lightShader->SetFloat(s.str(), 0.032f);
+        objectShader->SetFloat(s.str(), 0.032f);
       }
 
       // Draw all point lights
@@ -733,23 +826,40 @@ int Engine::Main()
         glDrawArrays(GL_TRIANGLES, 0, 36);
       }
 
-      lightShader->Use();
+      auto setShaderVars = [&](Shader* sh)
+      {
+        if (sh->_ID == _shaders[6]->_ID)
+        {
+          sh->Use();
+          sh->SetVec3("cameraPos", cam._pos);
+          sh->SetMat4("view", view);
+          sh->SetMat4("projection", projection);
+        }
+        else if (sh->_ID == _shaders[2]->_ID)
+        {
+          sh->Use();
 
-      lightShader->SetVec3("spotLight.ambient", glm::vec3(0.1f) * (float)(_spotLightColorIntensity) / 100.0f);
-      lightShader->SetVec3("spotLight.diffuse", glm::vec3(1.0f) * (float)(_spotLightColorIntensity) / 100.0f);
-      lightShader->SetVec3("spotLight.specular", glm::vec3(1.0f) * (float)(_spotLightColorIntensity) / 100.0f);
+          sh->SetVec3("spotLight.ambient", glm::vec3(0.1f) * (float)(_spotLightColorIntensity) / 100.0f);
+          sh->SetVec3("spotLight.diffuse", glm::vec3(1.0f) * (float)(_spotLightColorIntensity) / 100.0f);
+          sh->SetVec3("spotLight.specular", glm::vec3(1.0f) * (float)(_spotLightColorIntensity) / 100.0f);
 
-      lightShader->SetVec3("spotLight.position", cam._pos);
-      lightShader->SetVec3("spotLight.direction", cam._front);
-      lightShader->SetFloat("spotLight.cutOff", glm::cos(glm::radians(12.5f)));
-      lightShader->SetFloat("spotLight.outerCutOff", glm::cos(glm::radians(17.5f)));
+          sh->SetVec3("spotLight.position", cam._pos);
+          sh->SetVec3("spotLight.direction", cam._front);
+          sh->SetFloat("spotLight.cutOff", glm::cos(glm::radians(12.5f)));
+          sh->SetFloat("spotLight.outerCutOff", glm::cos(glm::radians(17.5f)));
 
-      lightShader->SetFloat("spotLight.constant", 1.0f);
-      lightShader->SetFloat("spotLight.linear", 0.09f);
-      lightShader->SetFloat("spotLight.quadratic", 0.032f);
+          sh->SetFloat("spotLight.constant", 1.0f);
+          sh->SetFloat("spotLight.linear", 0.09f);
+          sh->SetFloat("spotLight.quadratic", 0.032f);
+        }
+      };
+
+      setShaderVars(objectShader);
+      setShaderVars(cubeMapReflect);
 
       auto drawContainers = [&]()
       {
+        cubeMapReflect->Use();
         glBindVertexArray(VAOs[0]);
         for (int i = 0; i < _materials.size(); ++i)
         {
@@ -760,80 +870,87 @@ int Engine::Main()
           //lightShader->SetFloat("material.shininess", material.shininess);
 
           //lightShader->SetVec3("material.specular", 0.5f, 0.5f, 0.5f);
-          lightShader->SetFloat("material.shininess", 64.0f);
-
-          /*lightShader->SetVec3("material.ambient", 1.0f, 0.5f, 0.31f);
-          lightShader->SetVec3("material.diffuse", 1.0f, 0.5f, 0.31f);
-          lightShader->SetVec3("material.specular", 0.5f, 0.5f, 0.5f);
-          lightShader->SetFloat("material.shininess", 32.0f);*/
-          /*lightPos.x = 1.0f + sin(glfwGetTime()) * 2.0f;
-          lightPos.y = sin(glfwGetTime() / 2.0f) * 1.0f;*/
-
-          /* glm::vec4 lightPosView = view * glm::vec4(lightPos, 1.0f);
-           lightShader->SetVec3("lightPos", glm::vec3(lightPosView));*/
-
-           //lightShader->SetVec3("lightPos", lightPos);
-           /*glm::vec4 viewview = view * glm::vec4(_camera._pos, 1.0f);
-           lightShader->SetVec3("viewPos", glm::vec3(viewview));*/
-
-           //lightShader->SetVec3("lightPos", glm::vec3(view * glm::vec4(newLightPos, 1.0f)));
-           //lightShader->SetVec3("light.direction", glm::vec3(view * glm::vec4(newLightPos, 1.0f)));
+          //lightShader->SetFloat("material.shininess", 64.0f);
 
           model = glm::mat4(1.0f);
-          model = glm::translate(model, _positions.cubePositions[0] + randvecs[i] + glm::normalize(randvecs[i]) * 2.0f);
+          model = glm::translate(model, _positions.cubePositions[0] + glm::vec3(0.0f, containersYOffset, 0.0f) + randvecs[i] + glm::normalize(randvecs[i]) * 2.0f);
           //model = glm::translate(model, cubePositions[i]);
           model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f) * 1.0f);
 
           angle = rotTime * (-20.0f);
           model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f * sin(time), 0.5f));
-          lightShader->SetMat4("model", model);
+          cubeMapReflect->SetMat4("model", model);
 
           glDrawArrays(GL_TRIANGLES, 0, 36);
         }
       };
 
 
-      //drawContainers();
+      if (showContainers)
+        drawContainers();
+      objectShader->Use();
 
-      model = glm::mat4(1.0);
-      glm::vec3 bagPos(0.0f, 5.0f, 1.0f);
-      model = glm::translate(model, bagPos);
-      //model = glm::rotate(model, glm::degrees(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+      auto drawGuitarBag = [&]()
+      {
+        model = glm::mat4(1.0);
+        glm::vec3 bagPos(0.0f, 5.0f, 1.0f);
+        model = glm::translate(model, bagPos);
+        //model = glm::rotate(model, glm::degrees(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 
-      lightShader->SetMat4("model", model);
-      lightShader->SetFloat("material.shininess", 64.0f);
-      guitarBag.Draw(*lightShader);
+        objectShader->SetMat4("model", model);
+        objectShader->SetFloat("material.shininess", 64.0f);
+        guitarBag.Draw(*objectShader);
 
-      model = glm::scale(model, glm::vec3(1.1f));
-      shaderSingleColor.Use();
-      shaderSingleColor.SetMat4("model", model);
-      guitarBag.Highlight(shaderSingleColor);
+        if (highlight)
+        {
+          model = glm::scale(model, glm::vec3(1.0f) + glm::vec3(highlightAmount));
+          shaderSingleColor.Use();
+          shaderSingleColor.SetVec4("highLightColor", highlight_color);
+          shaderSingleColor.SetMat4("model", model);
+          guitarBag.Highlight(shaderSingleColor);
+        }
 
-      lightShader->Use();
-      model = glm::mat4(1.0);
-      glm::vec3 singaporePos(0.0f, -5.0f, 1.0f);
-      model = glm::translate(model, singaporePos);
-      model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f) * 0.01f);
+      };
 
-      /*lightShader->SetVec3("dirLight.ambient", glm::vec3(0.1f));
-      lightShader->SetVec3("dirLight.diffuse", glm::vec3(1.0f));
-      lightShader->SetVec3("dirLight.specular", glm::vec3(1.0f));
+      auto drawSingapore = [&]()
+      {
+        objectShader->Use();
+        model = glm::mat4(1.0);
+        glm::vec3 singaporePos(0.0f, -5.0f, 1.0f);
+        model = glm::translate(model, singaporePos);
+        model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f) * 0.01f);
 
-      lightShader->SetVec3("dirLight.direction", glm::vec3(1.0f, 1.0f, 0.0f));
+        /*lightShader->SetVec3("dirLight.ambient", glm::vec3(0.1f));
+        lightShader->SetVec3("dirLight.diffuse", glm::vec3(1.0f));
+        lightShader->SetVec3("dirLight.specular", glm::vec3(1.0f));
 
-      lightShader->SetFloat("dirLight.constant", 0.0f);
-      lightShader->SetFloat("dirLight.linear", 0.0f);
-      lightShader->SetFloat("dirLight.quadratic", 0.0f);*/
+        lightShader->SetVec3("dirLight.direction", glm::vec3(1.0f, 1.0f, 0.0f));
 
-      lightShader->SetMat4("model", model);
-      /*lightShader->SetVec3("material.ambient", obsidian.ambient);
-      lightShader->SetVec3("material.diffuse", obsidian.diffuse);
-      lightShader->SetVec3("material.specular", obsidian.specular);
-      lightShader->SetFloat("material.shininess", obsidian.shininess);*/
+        lightShader->SetFloat("dirLight.constant", 0.0f);
+        lightShader->SetFloat("dirLight.linear", 0.0f);
+        lightShader->SetFloat("dirLight.quadratic", 0.0f);*/
 
-      singapore.Draw(*lightShader);
+        objectShader->SetMat4("model", model);
+        /*lightShader->SetVec3("material.ambient", obsidian.ambient);
+        lightShader->SetVec3("material.diffuse", obsidian.diffuse);
+        lightShader->SetVec3("material.specular", obsidian.specular);
+        lightShader->SetFloat("material.shininess", obsidian.shininess);*/
+
+        singapore.Draw(*objectShader);
+        if (highlight)
+        {
+          model = glm::scale(model, glm::vec3(1.0f) + glm::vec3(highlightAmount));
+          shaderSingleColor.Use();
+          shaderSingleColor.SetVec4("highLightColor", highlight_color);
+          shaderSingleColor.SetMat4("model", model);
+          singapore.Highlight(shaderSingleColor);
+        }
+      };
       //destructor.Draw(*lightShader);
       //sponza.Draw(*lightShader);
+
+      drawGuitarBag();
+      drawSingapore();
     };
 
     drawScene(_camera, float(_width), float(_height));
@@ -1205,6 +1322,45 @@ void Engine::CreateShaders()
     }
   )";
 
+  std::string cmReflectVs = R"(
+    #version 330 core
+    layout (location = 0) in vec3 aPos;
+    layout (location = 1) in vec3 aNormal;
+    layout (location = 2) in vec2 aTexCoord;
+
+    out vec3 Normal;
+    out vec3 Position;
+
+    uniform mat4 model;
+    uniform mat4 view;
+    uniform mat4 projection;
+
+    void main()
+    {
+        Normal = mat3(transpose(inverse(model))) * aNormal;
+        Position = vec3(model * vec4(aPos, 1.0));
+        gl_Position = projection * view * vec4(Position, 1.0);
+    }
+  )";
+
+  std::string cmReflectFs = R"(
+    #version 330 core
+    out vec4 FragColor;
+
+    in vec3 Normal;
+    in vec3 Position;
+
+    uniform vec3 cameraPos;
+    uniform samplerCube skybox;
+
+    void main()
+    {
+        vec3 I = normalize(Position - cameraPos);
+        vec3 R = reflect(I, normalize(Normal));
+        FragColor = vec4(texture(skybox, R).rgb, 1.0);
+    }
+  )";
+
   std::unique_ptr<Shader> simpleShader            = std::make_unique<Shader>(simpleVScode, simpleFScode);
   std::unique_ptr<Shader> effectNegative          = std::make_unique<Shader>(simpleVScode, simpleFSnegative);
   std::unique_ptr<Shader> effectGreyScale         = std::make_unique<Shader>(simpleVScode, simpleFSgscale);
@@ -1214,6 +1370,7 @@ void Engine::CreateShaders()
   std::unique_ptr<Shader> effectEdge              = std::make_unique<Shader>(simpleVScode, fsEdge);
 
   std::unique_ptr<Shader> skyBoxS                 = std::make_unique<Shader>(skyBoxVSsrc, skyBoxFSsrc);
+  std::unique_ptr<Shader> cmReflect               = std::make_unique<Shader>(cmReflectVs, cmReflectFs);
 
   _shaders.push_back(std::move(shader1));
   _shaders.push_back(std::move(shader2));
@@ -1221,6 +1378,7 @@ void Engine::CreateShaders()
   _shaders.push_back(std::move(shaderLs));
   _shaders.push_back(std::move(shaderGouraud));
   _shaders.push_back(std::move(skyBoxS));
+  _shaders.push_back(std::move(cmReflect));
 
   // simple shader to render screen quad (idx = 5)
   _effects.push_back(std::move(simpleShader));
@@ -1363,47 +1521,48 @@ void Engine::InitVertices()
 
   std::vector<float> cubeVertNormalTex = {
     // positions          // normals           // texture coords
+    // ZM
     -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,
+     0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,
      0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 0.0f,
      0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,
-     0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,
-    -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 1.0f,
     -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,
-
+    -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 1.0f,
+    // ZP
     -0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   0.0f, 0.0f,
      0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   1.0f, 0.0f,
      0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   1.0f, 1.0f,
      0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   1.0f, 1.0f,
     -0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   0.0f, 1.0f,
     -0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   0.0f, 0.0f,
-
+    // XM
     -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
     -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 1.0f,
     -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
     -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
     -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 0.0f,
     -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
-
+    // XP
      0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
+     0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
      0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f,
      0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
-     0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
-     0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 0.0f,
      0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
-
+     0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 0.0f,
+    // YM
     -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 1.0f,
      0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 1.0f,
      0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 0.0f,
      0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 0.0f,
     -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 0.0f,
     -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 1.0f,
-
+    // YP
     -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f,
+     0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,
      0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 1.0f,
      0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,
-     0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,
-    -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 0.0f,
-    -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f
+    -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f,
+    -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 0.0f
   };
 
   std::vector<float> screenQuad = {
@@ -1599,6 +1758,112 @@ void Engine::InitPositions()
 
   //auto& lightPos = cubePositions[1];
   _positions.lightPos = {1.2f, 1.0f, 2.0f};
+}
+
+void Engine::ShowAppDockSpace(bool* p_open)
+{
+  // If you strip some features of, this demo is pretty much equivalent to calling DockSpaceOverViewport()!
+  // In most cases you should be able to just call DockSpaceOverViewport() and ignore all the code below!
+  // In this specific demo, we are not using DockSpaceOverViewport() because:
+  // - we allow the host window to be floating/moveable instead of filling the viewport (when opt_fullscreen == false)
+  // - we allow the host window to have padding (when opt_padding == true)
+  // - we have a local menu bar in the host window (vs. you could use BeginMainMenuBar() + DockSpaceOverViewport() in your code!)
+  // TL;DR; this demo is more complicated than what you would normally use.
+  // If we removed all the options we are showcasing, this demo would become:
+  //     void ShowExampleAppDockSpace()
+  //     {
+  //         ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
+  //     }
+
+  static bool opt_fullscreen = false;
+  static bool opt_padding = false;
+  static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None;
+
+  // We are using the ImGuiWindowFlags_NoDocking flag to make the parent window not dockable into,
+  // because it would be confusing to have two docking targets within each others.
+  ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar;// | ImGuiWindowFlags_NoDocking;
+  if (opt_fullscreen)
+  {
+    const ImGuiViewport* viewport = ImGui::GetMainViewport();
+    ImGui::SetNextWindowPos(viewport->WorkPos);
+    ImGui::SetNextWindowSize(viewport->WorkSize);
+    ImGui::SetNextWindowViewport(viewport->ID);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+    window_flags |= ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+    window_flags |= ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoNavFocus;
+  }
+  else
+  {
+    dockspace_flags &= ~ImGuiDockNodeFlags_PassthruCentralNode;
+  }
+
+  // When using ImGuiDockNodeFlags_PassthruCentralNode, DockSpace() will render our background
+  // and handle the pass-thru hole, so we ask Begin() to not render a background.
+  if (dockspace_flags & ImGuiDockNodeFlags_PassthruCentralNode)
+    window_flags |= ImGuiWindowFlags_NoBackground;
+
+  // Important: note that we proceed even if Begin() returns false (aka window is collapsed).
+  // This is because we want to keep our DockSpace() active. If a DockSpace() is inactive,
+  // all active windows docked into it will lose their parent and become undocked.
+  // We cannot preserve the docking relationship between an active window and an inactive docking, otherwise
+  // any change of dockspace/settings would lead to windows being stuck in limbo and never being visible.
+  if (!opt_padding)
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+  ImGui::Begin("GUI DockSpace", p_open, window_flags);
+  if (!opt_padding)
+    ImGui::PopStyleVar();
+
+  if (opt_fullscreen)
+    ImGui::PopStyleVar(2);
+
+  // Submit the DockSpace
+  ImGuiIO& io = ImGui::GetIO();
+  if (io.ConfigFlags & ImGuiConfigFlags_DockingEnable)
+  {
+    ImGuiID dockspace_id = ImGui::GetID("MyDockSpace");
+    ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), dockspace_flags);
+  }
+  else
+  {
+    ShowDockingDisabledMessage();
+  }
+
+  if (ImGui::BeginMenuBar())
+  {
+    if (ImGui::BeginMenu("Options"))
+    {
+      // Disabling fullscreen would allow the window to be moved to the front of other windows,
+      // which we can't undo at the moment without finer window depth/z control.
+      ImGui::MenuItem("Fullscreen", NULL, &opt_fullscreen);
+      ImGui::MenuItem("Padding", NULL, &opt_padding);
+      ImGui::Separator();
+
+      if (ImGui::MenuItem("Flag: NoSplit", "", (dockspace_flags & ImGuiDockNodeFlags_NoSplit) != 0)) { dockspace_flags ^= ImGuiDockNodeFlags_NoSplit; }
+      if (ImGui::MenuItem("Flag: NoResize", "", (dockspace_flags & ImGuiDockNodeFlags_NoResize) != 0)) { dockspace_flags ^= ImGuiDockNodeFlags_NoResize; }
+      if (ImGui::MenuItem("Flag: NoDockingInCentralNode", "", (dockspace_flags & ImGuiDockNodeFlags_NoDockingInCentralNode) != 0)) { dockspace_flags ^= ImGuiDockNodeFlags_NoDockingInCentralNode; }
+      if (ImGui::MenuItem("Flag: AutoHideTabBar", "", (dockspace_flags & ImGuiDockNodeFlags_AutoHideTabBar) != 0)) { dockspace_flags ^= ImGuiDockNodeFlags_AutoHideTabBar; }
+      if (ImGui::MenuItem("Flag: PassthruCentralNode", "", (dockspace_flags & ImGuiDockNodeFlags_PassthruCentralNode) != 0, opt_fullscreen)) { dockspace_flags ^= ImGuiDockNodeFlags_PassthruCentralNode; }
+      ImGui::Separator();
+
+      if (ImGui::MenuItem("Close", NULL, false, p_open != NULL))
+        *p_open = false;
+      ImGui::EndMenu();
+    }
+    HelpMarker(
+      "When docking is enabled, you can ALWAYS dock MOST window into another! Try it now!" "\n"
+      "- Drag from window title bar or their tab to dock/undock." "\n"
+      "- Drag from window menu button (upper-left button) to undock an entire node (all windows)." "\n"
+      "- Hold SHIFT to disable docking (if io.ConfigDockingWithShift == false, default)" "\n"
+      "- Hold SHIFT to enable docking (if io.ConfigDockingWithShift == true)" "\n"
+      "This demo app has nothing to do with enabling docking!" "\n\n"
+      "This demo app only demonstrate the use of ImGui::DockSpace() which allows you to manually create a docking node _within_ another window." "\n\n"
+      "Read comments in ShowExampleAppDockSpace() for more details.");
+
+    ImGui::EndMenuBar();
+  }
+
+  ImGui::End();
 }
 
 NULLENGINE_API void* CreateEngine()
