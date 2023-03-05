@@ -621,29 +621,82 @@ int Engine::Main()
 
       if (ImGui::CollapsingHeader("Shader Configuration"))
       {
+        std::vector<std::pair<std::string, float>> refractiveIds;
+        refractiveIds.push_back({"Air", 1.00f});
+        refractiveIds.push_back({"Water", 1.33f});
+        refractiveIds.push_back({"Ice", 1.309f});
+        refractiveIds.push_back({"Glass", 1.52f});
+        refractiveIds.push_back({"Diamond", 2.42f});
         //if (ImGui::TreeNode("Configuration##2"))
         {
           ImGui::SeparatorText("Shader options");
           static int shaderObj_current;
           static int shaderCont_current;
-          static const char* items[] = {"Phong classic", "CubeMap reflection"};
-          static const char* items2[] = {"CubeMap reflection", "Phong classic"};
+          static int shObj_selectedRi = -1;
+          static int shCon_selectedRi = -1;
+
+          static const char* items[] = {"Phong classic", "CubeMap reflection", "CM-Refraction"};
+          static const char* items2[] = {"CubeMap reflection", "Phong classic", "CM-Refraction"};
           ImGui::Combo("Object shader", &shaderObj_current, items, _countof(items), 2);
           ImGui::SameLine(); HelpMarker(
             "Select which shader to use for objects loaded with assimp lib.");
+
+          auto showRiSelection = [&](int& index)
+          {
+            if (ImGui::TreeNode("Refractive index selection"))
+            {
+              for (int i = 0; i < refractiveIds.size(); ++i)
+              {
+                const auto& ri = refractiveIds[i];
+                if (ImGui::Selectable(ri.first.c_str(), index == i))
+                  index = i;
+              }
+              ImGui::TreePop();
+            }
+          };
+
+          if (shaderObj_current == 2)
+            showRiSelection(shObj_selectedRi);
+
           ImGui::Combo("Containers shader", &shaderCont_current, items2, _countof(items2), 2);
           ImGui::SameLine(); HelpMarker(
-            "Select which shader to use for objects loaded with assimp lib.");
+            "Select which shader to use for simple containers/cubes.");
 
+          if (shaderCont_current == 2)
+            showRiSelection(shCon_selectedRi);
+
+          // perform shader setup
           if (shaderObj_current == 0)
+          {
             objectShader = _shaders[2].get();
+          }
           else if (shaderObj_current == 1)
+          {
             objectShader = _shaders[6].get();
+          }
+          else if (shaderObj_current == 2)
+          {
+            objectShader = _shaders[7].get();
+            objectShader->Use();
+            int ri = shObj_selectedRi >= 0 ? shObj_selectedRi : 0;
+            objectShader->SetFloat("refractiveIndex", refractiveIds[ri].second);
+          }
 
           if (shaderCont_current == 0)
+          {
             cubeMapReflect = _shaders[6].get();
+          }
           else if (shaderCont_current == 1)
+          {
             cubeMapReflect = _shaders[2].get();
+          }
+          else if (shaderCont_current == 2)
+          {
+            cubeMapReflect = _shaders[7].get();
+            cubeMapReflect->Use();
+            int ri = shCon_selectedRi >= 0 ? shCon_selectedRi : 0;
+            cubeMapReflect->SetFloat("refractiveIndex", refractiveIds[ri].second);
+          }
         }
 
         //ImGui::TreePop();
@@ -828,7 +881,7 @@ int Engine::Main()
 
       auto setShaderVars = [&](Shader* sh)
       {
-        if (sh->_ID == _shaders[6]->_ID)
+        if (sh->_ID == _shaders[6]->_ID || sh->_ID == _shaders[7]->_ID)
         {
           sh->Use();
           sh->SetVec3("cameraPos", cam._pos);
@@ -1361,6 +1414,26 @@ void Engine::CreateShaders()
     }
   )";
 
+  std::string cmRefractFs = R"(
+    #version 330 core
+    out vec4 FragColor;
+
+    in vec3 Normal;
+    in vec3 Position;
+
+    uniform float refractiveIndex;
+    uniform vec3 cameraPos;
+    uniform samplerCube skybox;
+
+    void main()
+    {
+        float ratio = 1.00 / refractiveIndex;
+        vec3 I = normalize(Position - cameraPos);
+        vec3 R = refract(I, normalize(Normal), ratio);
+        FragColor = vec4(texture(skybox, R).rgb, 1.0);
+    }
+  )";
+
   std::unique_ptr<Shader> simpleShader            = std::make_unique<Shader>(simpleVScode, simpleFScode);
   std::unique_ptr<Shader> effectNegative          = std::make_unique<Shader>(simpleVScode, simpleFSnegative);
   std::unique_ptr<Shader> effectGreyScale         = std::make_unique<Shader>(simpleVScode, simpleFSgscale);
@@ -1371,6 +1444,7 @@ void Engine::CreateShaders()
 
   std::unique_ptr<Shader> skyBoxS                 = std::make_unique<Shader>(skyBoxVSsrc, skyBoxFSsrc);
   std::unique_ptr<Shader> cmReflect               = std::make_unique<Shader>(cmReflectVs, cmReflectFs);
+  std::unique_ptr<Shader> cmRefract               = std::make_unique<Shader>(cmReflectVs, cmRefractFs);
 
   _shaders.push_back(std::move(shader1));
   _shaders.push_back(std::move(shader2));
@@ -1379,6 +1453,7 @@ void Engine::CreateShaders()
   _shaders.push_back(std::move(shaderGouraud));
   _shaders.push_back(std::move(skyBoxS));
   _shaders.push_back(std::move(cmReflect));
+  _shaders.push_back(std::move(cmRefract));
 
   // simple shader to render screen quad (idx = 5)
   _effects.push_back(std::move(simpleShader));
