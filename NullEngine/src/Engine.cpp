@@ -591,10 +591,11 @@ int Engine::Main()
 
     // 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
     static bool showContainers = false;
-    static float containersYOffset = 0.0f;
+    static glm::vec3 containersYOffset(0.0f);
     static bool highlight = false;
     static float highlightAmount = 0.01f;
 
+    // GUI related stuff
     {
       //ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
       static float mouseSensMult = 2.5f;
@@ -617,7 +618,10 @@ int Engine::Main()
       }
 
       if (showContainers)
-        ImGui::SliderFloat("Containers Y-offset from origin", &containersYOffset, -50.0f, 50.0f);
+      {
+        ImGui::SeparatorText("Containers offset from origin");
+        ImGui::SliderFloat3("X | Y | Z", (float*)&containersYOffset, -50.0f, 50.0f);
+      }
 
       if (ImGui::CollapsingHeader("Shader Configuration"))
       {
@@ -926,7 +930,7 @@ int Engine::Main()
           //lightShader->SetFloat("material.shininess", 64.0f);
 
           model = glm::mat4(1.0f);
-          model = glm::translate(model, _positions.cubePositions[0] + glm::vec3(0.0f, containersYOffset, 0.0f) + randvecs[i] + glm::normalize(randvecs[i]) * 2.0f);
+          model = glm::translate(model, _positions.cubePositions[0] + containersYOffset + randvecs[i] + glm::normalize(randvecs[i]) * 2.0f);
           //model = glm::translate(model, cubePositions[i]);
           model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f) * 1.0f);
 
