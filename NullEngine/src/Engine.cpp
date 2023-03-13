@@ -324,7 +324,6 @@ int Engine::Main()
   containerEmissionMap.Load();
 
   std::string imgExt = ".jpg";
-  std::string imgExt2 = ".png";
   std::vector<std::string> faces
   {
     root + "skybox/right" + imgExt,
@@ -336,6 +335,19 @@ int Engine::Main()
   };
   CubeMap skyBox("LearnOpenGLskyBox", faces);
   skyBox.Load();
+
+  imgExt = ".png";
+  std::vector<std::string> faces2
+  {
+    root + "skybox2/right" + imgExt,
+    root + "skybox2/left" + imgExt,
+    root + "skybox2/top" + imgExt,
+    root + "skybox2/bottom" + imgExt,
+    root + "skybox2/front" + imgExt,
+    root + "skybox2/back" + imgExt
+  };
+  CubeMap skyBox2("LearnOpenGLskyBox2", faces2);
+  skyBox2.Load();
 
   Model guitarBag("../Resources/backpack/backpack.obj", nullptr, true);
   Model singapore("../Resources/singapore/untitled.obj");
@@ -594,6 +606,7 @@ int Engine::Main()
     static glm::vec3 containersYOffset(0.0f);
     static bool highlight = false;
     static float highlightAmount = 0.01f;
+    static int shSky_selectedRi = -1;
 
     // GUI related stuff
     {
@@ -611,6 +624,9 @@ int Engine::Main()
       ImGui::Checkbox("Draw containers", &showContainers);
       ImGui::SameLine();
       ImGui::Checkbox("Highlight objects", &highlight);
+      static const char* skyBoxes[] = {"black", "SkyBox1", "SkyBox2"};
+      ImGui::Combo("Select Skybox", &shSky_selectedRi, skyBoxes, _countof(skyBoxes), 3);
+
       if (highlight)
       {
         ImGui::SliderFloat("Highlight strength", &highlightAmount, 0.0f, 1.0f);
@@ -755,7 +771,11 @@ int Engine::Main()
       skyBoxShader->SetMat4("view", glm::mat4(glm::mat3(view)));
       skyBoxShader->SetMat4("projection", projection);
       glBindVertexArray(skyboxVAO);
-      skyBox.Use();
+      if (shSky_selectedRi == 1)
+        skyBox.Use();
+      else if(shSky_selectedRi == 2)
+        skyBox2.Use();
+
       glDrawArrays(GL_TRIANGLES, 0, 36);
       glDepthMask(GL_TRUE);
       glStencilMask(0xFF);
