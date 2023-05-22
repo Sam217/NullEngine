@@ -579,6 +579,15 @@ int Engine::Main()
   glActiveTexture(GL_TEXTURE2);
   containerEmissionMap.Use();
 
+  unsigned uboVP;
+  glGenBuffers(1, &uboVP);
+  glBindBuffer(GL_UNIFORM_BUFFER, uboVP);
+  // allocate memory for two float4x4 matrices
+  glBufferData(GL_UNIFORM_BUFFER, 2 * sizeof(glm::mat4), nullptr, GL_DYNAMIC_DRAW);
+
+  glBindBufferRange(GL_UNIFORM_BUFFER, 0, uboVP, 0, 2 * sizeof(glm::mat4));
+  glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
   glm::vec4 clear_color = {0.4f, 0.55f, 0.9f, 0.75f};
   glm::vec4 highlight_color = {0.4f, 0.55f, 0.9f, 0.75f};
 
@@ -602,7 +611,7 @@ int Engine::Main()
 
     // 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
     static bool showContainers = false;
-    static glm::vec3 containersYOffset(0.0f);
+    static glm::vec3 containersXYZOffset(0.0f);
     static bool highlight = false;
     static float highlightAmount = 0.01f;
     static int shSky_selectedRi = -1;
@@ -635,7 +644,7 @@ int Engine::Main()
       if (showContainers)
       {
         ImGui::SeparatorText("Containers offset from origin");
-        ImGui::SliderFloat3("X | Y | Z", (float*)&containersYOffset, -50.0f, 50.0f);
+        ImGui::SliderFloat3("X | Y | Z", (float*)&containersXYZOffset, -50.0f, 50.0f);
       }
 
       if (ImGui::CollapsingHeader("Shader Configuration"))
@@ -762,13 +771,18 @@ int Engine::Main()
       glm::mat4 projection = glm::perspective(glm::radians(cam._fov), texWidth / texHeight, 0.1f, 100.0f);
       //projection = glm::ortho(-(float)_width / 256, (float)_width / 256, -(float)_height / 256, (float)_height / 256, -100.1f, 100.0f);
 
+      glBindBuffer(GL_UNIFORM_BUFFER, uboVP);
+      glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(view));
+      glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(projection));
+      glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
       // draw skybox first
       glDepthMask(GL_FALSE);
       glStencilMask(0);
       skyBoxShader->Use();
       // ... set view and projection matrix
-      skyBoxShader->SetMat4("view", glm::mat4(glm::mat3(view)));
-      skyBoxShader->SetMat4("projection", projection);
+      skyBoxShader->SetMat4("skyBoxView", glm::mat4(glm::mat3(view)));
+      // skyBoxShader->SetMat4("projection", projection);
       glBindVertexArray(skyboxVAO);
       if (shSky_selectedRi == 1)
         skyBox.Use();
@@ -785,8 +799,8 @@ int Engine::Main()
       lightSourceCube->SetVec3("lightColor", glm::vec3(1.0f) * (float)_lightColorIntensity / 100.0f);
 
       // draw light source
-      lightSourceCube->SetMat4("view", view);
-      lightSourceCube->SetMat4("projection", projection);
+      // lightSourceCube->SetMat4("view", view);
+      // lightSourceCube->SetMat4("projection", projection);
 
       float posTime = time / 3.0f;
       float radius = 5.0f;
@@ -808,8 +822,8 @@ int Engine::Main()
 
       // draw material cube(s)
       objectShader->Use();
-      objectShader->SetMat4("view", view);
-      objectShader->SetMat4("projection", projection);
+      // objectShader->SetMat4("view", view);
+      // objectShader->SetMat4("projection", projection);
 
       shaderSingleColor.Use();
       shaderSingleColor.SetMat4("view", view);
@@ -908,8 +922,8 @@ int Engine::Main()
         {
           sh->Use();
           sh->SetVec3("cameraPos", cam._pos);
-          sh->SetMat4("view", view);
-          sh->SetMat4("projection", projection);
+          // sh->SetMat4("view", view);
+          // sh->SetMat4("projection", projection);
         }
         else if (sh->_ID == _shaders[2]->_ID)
         {
@@ -949,7 +963,7 @@ int Engine::Main()
           //lightShader->SetFloat("material.shininess", 64.0f);
 
           model = glm::mat4(1.0f);
-          model = glm::translate(model, _positions.cubePositions[0] + containersYOffset + randvecs[i] + glm::normalize(randvecs[i]) * 2.0f);
+          model = glm::translate(model, _positions.cubePositions[0] + containersXYZOffset + randvecs[i] + glm::normalize(randvecs[i]) * 2.0f);
           //model = glm::translate(model, cubePositions[i]);
           model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f) * 1.0f);
 
@@ -1119,7 +1133,7 @@ void Engine::InitGLFW()
 {
   // Init  GLFW
   std::cout << glfwInit() << std::endl;
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
   glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
@@ -1180,7 +1194,7 @@ void Engine::CreateShaders()
   std::unique_ptr<Shader> shader2 = std::make_unique<Shader>((root + "VertexShader.glsl").c_str(), (root + "FragmentShader2.glsl").c_str());*/
 
   std::string simpleVScode = R"(
-    #version 330 core
+    #version 430 core
     layout (location = 0) in vec2 aPos;
     layout (location = 1) in vec2 aTexCoords;
 
@@ -1195,7 +1209,7 @@ void Engine::CreateShaders()
   )";
 
   std::string simpleFScode = R"(
-    #version 330 core
+    #version 430 core
     out vec4 FragColor;
     in vec2 TexCoords;
     uniform sampler2D screenTexture;
@@ -1207,7 +1221,7 @@ void Engine::CreateShaders()
   )";
 
   std::string simpleFSnegative = R"(
-    #version 330 core
+    #version 430 core
     out vec4 FragColor;
     in vec2 TexCoords;
     uniform sampler2D screenTexture;
@@ -1219,7 +1233,7 @@ void Engine::CreateShaders()
   )";
 
   std::string simpleFSgscale = R"(
-    #version 330 core
+    #version 430 core
     out vec4 FragColor;
     in vec2 TexCoords;
     uniform sampler2D screenTexture;
@@ -1232,7 +1246,7 @@ void Engine::CreateShaders()
     })";
 
   std::string simpleFSgscaleW = R"(
-    #version 330 core
+    #version 430 core
     out vec4 FragColor;
     in vec2 TexCoords;
     uniform sampler2D screenTexture;
@@ -1246,7 +1260,7 @@ void Engine::CreateShaders()
   )";
 
   std::string fsSharpen = R"(
-    #version 330 core
+    #version 430 core
     out vec4 FragColor;
     in vec2 TexCoords;
     uniform sampler2D screenTexture;
@@ -1287,7 +1301,7 @@ void Engine::CreateShaders()
   )";
 
   std::string fsBlur = R"(
-    #version 330 core
+    #version 430 core
     out vec4 FragColor;
     in vec2 TexCoords;
     uniform sampler2D screenTexture;
@@ -1328,7 +1342,7 @@ void Engine::CreateShaders()
   )";
 
   std::string fsEdge = R"(
-    #version 330 core
+    #version 430 core
     out vec4 FragColor;
     in vec2 TexCoords;
     uniform sampler2D screenTexture;
@@ -1369,23 +1383,27 @@ void Engine::CreateShaders()
   )";
 
   std::string skyBoxVSsrc = R"(
-      #version 330 core
+      #version 430 core
       layout (location = 0) in vec3 aPos;
 
       out vec3 TexCoords;
 
-      uniform mat4 projection;
-      uniform mat4 view;
+      layout (std140, binding = 0) uniform matrixVP {
+        mat4 view;
+        mat4 projection;
+      };
+
+      uniform mat4 skyBoxView;
 
       void main()
       {
           TexCoords = aPos;
-          gl_Position = projection * view * vec4(aPos, 1.0);
+          gl_Position = projection * skyBoxView * vec4(aPos, 1.0);
       }
   )";
 
   std::string skyBoxFSsrc = R"(
-    #version 330 core
+    #version 430 core
     out vec4 FragColor;
 
     in vec3 TexCoords;
@@ -1399,7 +1417,7 @@ void Engine::CreateShaders()
   )";
 
   std::string cmReflectVs = R"(
-    #version 330 core
+    #version 430 core
     layout (location = 0) in vec3 aPos;
     layout (location = 1) in vec3 aNormal;
     layout (location = 2) in vec2 aTexCoord;
@@ -1408,8 +1426,10 @@ void Engine::CreateShaders()
     out vec3 Position;
 
     uniform mat4 model;
-    uniform mat4 view;
-    uniform mat4 projection;
+    layout (std140, binding = 0) uniform matrixVP {
+        mat4 view;
+        mat4 projection;
+    };
 
     void main()
     {
@@ -1420,7 +1440,7 @@ void Engine::CreateShaders()
   )";
 
   std::string cmReflectFs = R"(
-    #version 330 core
+    #version 430 core
     out vec4 FragColor;
 
     in vec3 Normal;
@@ -1438,7 +1458,7 @@ void Engine::CreateShaders()
   )";
 
   std::string cmRefractFs = R"(
-    #version 330 core
+    #version 430 core
     out vec4 FragColor;
 
     in vec3 Normal;
@@ -1782,7 +1802,7 @@ void Engine::InitImGui()
   }
 
   // Setup Platform/Renderer backends
-  const char* glsl_version = "#version 330";
+  const char* glsl_version = "#version 430";
   ImGui_ImplGlfw_InitForOpenGL(_window, true);
   ImGui_ImplOpenGL3_Init(glsl_version);
 
