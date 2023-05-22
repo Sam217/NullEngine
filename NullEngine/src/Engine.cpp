@@ -33,9 +33,8 @@ void ShowDockingDisabledMessage()
 static void HelpMarker(const char* desc)
 {
   ImGui::TextDisabled("(?)");
-  if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort))
+  if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort) && ImGui::BeginTooltip())
   {
-    ImGui::BeginTooltip();
     ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
     ImGui::TextUnformatted(desc);
     ImGui::PopTextWrapPos();
@@ -1783,7 +1782,7 @@ void Engine::InitImGui()
   }
 
   // Setup Platform/Renderer backends
-  const char* glsl_version = "#version 130";
+  const char* glsl_version = "#version 330";
   ImGui_ImplGlfw_InitForOpenGL(_window, true);
   ImGui_ImplOpenGL3_Init(glsl_version);
 

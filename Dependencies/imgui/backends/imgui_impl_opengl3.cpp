@@ -319,7 +319,7 @@ bool    ImGui_ImplOpenGL3_Init(const char* glsl_version)
 #elif defined(__APPLE__)
         glsl_version = "#version 150";
 #else
-        glsl_version = "#version 130";
+        glsl_version = "#version 330";
 #endif
     }
     IM_ASSERT((int)strlen(glsl_version) + 2 < IM_ARRAYSIZE(bd->GlslVersionString));

@@ -1,6 +1,13 @@
 #version 330 core
 out vec4 FragColor;
 
+in VS_OUT {
+    vec3 Normal;
+    vec3 FragPos;
+    vec3 LightPos;
+    vec2 TexCoords;
+} ps_in;
+
 uniform vec3 lightColor;
 
 void main()
