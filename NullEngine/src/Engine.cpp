@@ -615,7 +615,7 @@ int Engine::Main()
     static glm::vec3 containersXYZOffset(0.0f);
     static bool highlight = false;
     static float highlightAmount = 0.01f;
-    static int shSky_selected = -1;
+    static int shSky_selected = 1;
 
     // GUI related stuff
     {
