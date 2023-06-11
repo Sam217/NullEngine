@@ -20,6 +20,13 @@ out VS_OUT {
     vec2 TexCoords;
 } vs_out;
 
+//out GS_OUT {
+//    vec3 Normal;
+//    vec3 FragPos;
+//    vec3 LightPos;
+//    vec2 TexCoords;
+//} gs_out;
+
 
 void main()
 {
@@ -28,6 +35,12 @@ void main()
     vs_out.LightPos = lightPos;
     //LightPos = vec3(view * model * vec4(lightPos, 1.0));
     vs_out.TexCoords = aTexCoords;
+
+//    gs_out.FragPos   = vs_out.FragPos;
+//    gs_out.Normal    = vs_out.Normal;  
+//    gs_out.LightPos  = vs_out.LightPos;
+//    gs_out.TexCoords = vs_out.TexCoords;
+    
     gl_Position = projection * view * model * vec4(aPos, 1.0);
     //gl_Position = projection * view * model * vec4(FragPos, 1.0);
 } 

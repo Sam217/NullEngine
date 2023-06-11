@@ -16,6 +16,7 @@
 #include "Engine.h"
 #include "IEngine.h"
 #include "Shader.h"
+#include "Shaders/ShaderSources.hpp"
 #include "Texture.h"
 #include "Model.h"
 #define STB_IMAGE_IMPLEMENTATION
@@ -614,7 +615,7 @@ int Engine::Main()
     static glm::vec3 containersXYZOffset(0.0f);
     static bool highlight = false;
     static float highlightAmount = 0.01f;
-    static int shSky_selectedRi = -1;
+    static int shSky_selected = -1;
 
     // GUI related stuff
     {
@@ -633,7 +634,7 @@ int Engine::Main()
       ImGui::SameLine();
       ImGui::Checkbox("Highlight objects", &highlight);
       static const char* skyBoxes[] = {"black", "SkyBox1", "SkyBox2"};
-      ImGui::Combo("Select Skybox", &shSky_selectedRi, skyBoxes, _countof(skyBoxes), 3);
+      ImGui::Combo("Select Skybox", &shSky_selected, skyBoxes, _countof(skyBoxes), 3);
 
       if (highlight)
       {
@@ -663,9 +664,9 @@ int Engine::Main()
           static int shObj_selectedRi = -1;
           static int shCon_selectedRi = -1;
 
-          static const char* items[] = {"Phong classic", "CubeMap reflection", "CM-Refraction"};
-          static const char* items2[] = {"CubeMap reflection", "Phong classic", "CM-Refraction"};
-          ImGui::Combo("Object shader", &shaderObj_current, items, _countof(items), 2);
+          static const char* itemsObjs[] = {"Phong classic", "CubeMap reflection", "CM-Refraction", "Phong explosion"};
+          static const char* itemsContainers[] = {"CubeMap reflection", "Phong classic", "CM-Refraction"};
+          ImGui::Combo("Object shader", &shaderObj_current, itemsObjs, _countof(itemsObjs), 2);
           ImGui::SameLine(); HelpMarker(
             "Select which shader to use for objects loaded with assimp lib.");
 
@@ -686,7 +687,7 @@ int Engine::Main()
           if (shaderObj_current == 2)
             showRiSelection(shObj_selectedRi);
 
-          ImGui::Combo("Containers shader", &shaderCont_current, items2, _countof(items2), 2);
+          ImGui::Combo("Containers shader", &shaderCont_current, itemsContainers, _countof(itemsContainers), 2);
           ImGui::SameLine(); HelpMarker(
             "Select which shader to use for simple containers/cubes.");
 
@@ -708,6 +709,10 @@ int Engine::Main()
             objectShader->Use();
             int ri = shObj_selectedRi >= 0 ? shObj_selectedRi : 0;
             objectShader->SetFloat("refractiveIndex", refractiveIds[ri].second);
+          }
+          else if (shaderObj_current == 3)
+          {
+            objectShader = _shaders[8].get();
           }
 
           if (shaderCont_current == 0)
@@ -784,10 +789,12 @@ int Engine::Main()
       skyBoxShader->SetMat4("skyBoxView", glm::mat4(glm::mat3(view)));
       // skyBoxShader->SetMat4("projection", projection);
       glBindVertexArray(skyboxVAO);
-      if (shSky_selectedRi == 1)
+      if (shSky_selected == 1)
         skyBox.Use();
-      else if(shSky_selectedRi == 2)
+      else if (shSky_selected == 2)
         skyBox2.Use();
+      else
+        glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 
       glDrawArrays(GL_TRIANGLES, 0, 36);
       glDepthMask(GL_TRUE);
@@ -925,7 +932,7 @@ int Engine::Main()
           // sh->SetMat4("view", view);
           // sh->SetMat4("projection", projection);
         }
-        else if (sh->_ID == _shaders[2]->_ID)
+        else if (sh->_ID == _shaders[2]->_ID || sh->_ID == _shaders[8]->_ID)
         {
           sh->Use();
 
@@ -941,6 +948,11 @@ int Engine::Main()
           sh->SetFloat("spotLight.constant", 1.0f);
           sh->SetFloat("spotLight.linear", 0.09f);
           sh->SetFloat("spotLight.quadratic", 0.032f);
+
+          if (sh->_ID == _shaders[8]->_ID)
+          {
+            sh->SetFloat("time", frameEnd);
+          }
         }
       };
 
@@ -1188,294 +1200,11 @@ void Engine::CreateShaders()
   std::unique_ptr<Shader> shaderL(new Shader((root + "LightingCubeV.glsl").c_str(), (root + "LightingCubeF.glsl").c_str()));
   //std::unique_ptr<Shader> shaderL(new Shader(R"(F:\MEGAsync\source\repos\LearnOpenGL\NullEngine\LearnOpenGL_guide\5.1.light_casters.vs)", R"(F:\MEGAsync\source\repos\LearnOpenGL\NullEngine\LearnOpenGL_guide\5.1.light_casters.fs)"));
   std::unique_ptr<Shader> shaderLs(new Shader((root + "LightingCubeV.glsl").c_str(), (root + "LightSourceF.glsl").c_str()));
+  std::unique_ptr<Shader> geomEffect(new Shader((root + "LightingCubeV.glsl").c_str(), (root + "lightingObjectGF.glsl").c_str(), (root + "geometryEffect0.glsl").c_str()));
 
   std::unique_ptr<Shader> shaderGouraud(new Shader((root + "LightingCubeV_Gouraud.glsl").c_str(), (root + "LightingCubeF_Gouraud.glsl").c_str()));
   /*std::unique_ptr<Shader> shader1 = std::make_unique<Shader>((root + "VertexShader.glsl").c_str(), (root + "FragmentShader.glsl").c_str());
   std::unique_ptr<Shader> shader2 = std::make_unique<Shader>((root + "VertexShader.glsl").c_str(), (root + "FragmentShader2.glsl").c_str());*/
-
-  std::string simpleVScode = R"(
-    #version 430 core
-    layout (location = 0) in vec2 aPos;
-    layout (location = 1) in vec2 aTexCoords;
-
-    out vec2 TexCoords;
-    uniform mat4 transform;
-
-    void main()
-    {
-      gl_Position = transform * vec4(aPos.x, aPos.y, 0.0, 1.0);
-      TexCoords = aTexCoords;
-    }
-  )";
-
-  std::string simpleFScode = R"(
-    #version 430 core
-    out vec4 FragColor;
-    in vec2 TexCoords;
-    uniform sampler2D screenTexture;
-
-    void main()
-    {
-      FragColor = texture(screenTexture, TexCoords);
-    }
-  )";
-
-  std::string simpleFSnegative = R"(
-    #version 430 core
-    out vec4 FragColor;
-    in vec2 TexCoords;
-    uniform sampler2D screenTexture;
-
-    void main()
-    {
-      FragColor = vec4(vec3(1.0f - texture(screenTexture, TexCoords)), 1.0);
-    }
-  )";
-
-  std::string simpleFSgscale = R"(
-    #version 430 core
-    out vec4 FragColor;
-    in vec2 TexCoords;
-    uniform sampler2D screenTexture;
-
-    void main()
-    {
-      vec3 texColor = texture(screenTexture, TexCoords).rgb;
-      float avg = (texColor.r + texColor.g + texColor.b) / 3.0f;
-      FragColor = vec4(avg, avg, avg, 1.0);
-    })";
-
-  std::string simpleFSgscaleW = R"(
-    #version 430 core
-    out vec4 FragColor;
-    in vec2 TexCoords;
-    uniform sampler2D screenTexture;
-
-    void main()
-    {
-      FragColor = texture(screenTexture, TexCoords);
-      float avg = 0.2126 * FragColor.r + 0.7152 * FragColor.g + 0.0722 * FragColor.b;
-      FragColor = vec4(avg, avg, avg, 1.0);
-    }
-  )";
-
-  std::string fsSharpen = R"(
-    #version 430 core
-    out vec4 FragColor;
-    in vec2 TexCoords;
-    uniform sampler2D screenTexture;
-
-    const float offset = 1.0 / 300.0;
-
-    void main()
-    {
-      vec2 offsets[9] = vec2[](
-          vec2(-offset,  offset), // top-left
-          vec2( 0.0f,    offset), // top-center
-          vec2( offset,  offset), // top-right
-          vec2(-offset,  0.0f),   // center-left
-          vec2( 0.0f,    0.0f),   // center-center
-          vec2( offset,  0.0f),   // center-right
-          vec2(-offset, -offset), // bottom-left
-          vec2( 0.0f,   -offset), // bottom-center
-          vec2( offset, -offset)  // bottom-right
-      );
-
-      float kernel[9] = float[](
-          -1, -1, -1,
-          -1,  9, -1,
-          -1, -1, -1
-      );
-
-      vec3 sampleTex[9];
-      for(int i = 0; i < 9; i++)
-      {
-          sampleTex[i] = vec3(texture(screenTexture, TexCoords.st + offsets[i]));
-      }
-      vec3 col = vec3(0.0);
-      for(int i = 0; i < 9; i++)
-          col += sampleTex[i] * kernel[i];
-
-      FragColor = vec4(col, 1.0);
-      }
-  )";
-
-  std::string fsBlur = R"(
-    #version 430 core
-    out vec4 FragColor;
-    in vec2 TexCoords;
-    uniform sampler2D screenTexture;
-
-    const float offset = 1.0 / 300.0;
-
-    void main()
-    {
-      vec2 offsets[9] = vec2[](
-          vec2(-offset,  offset), // top-left
-          vec2( 0.0f,    offset), // top-center
-          vec2( offset,  offset), // top-right
-          vec2(-offset,  0.0f),   // center-left
-          vec2( 0.0f,    0.0f),   // center-center
-          vec2( offset,  0.0f),   // center-right
-          vec2(-offset, -offset), // bottom-left
-          vec2( 0.0f,   -offset), // bottom-center
-          vec2( offset, -offset)  // bottom-right
-      );
-
-      float kernel[9] = float[](
-        1.0 / 16, 2.0 / 16, 1.0 / 16,
-        2.0 / 16, 4.0 / 16, 2.0 / 16,
-        1.0 / 16, 2.0 / 16, 1.0 / 16
-      );
-
-      vec3 sampleTex[9];
-      for(int i = 0; i < 9; i++)
-      {
-          sampleTex[i] = vec3(texture(screenTexture, TexCoords.st + offsets[i]));
-      }
-      vec3 col = vec3(0.0);
-      for(int i = 0; i < 9; i++)
-          col += sampleTex[i] * kernel[i];
-
-      FragColor = vec4(col, 1.0);
-      }
-  )";
-
-  std::string fsEdge = R"(
-    #version 430 core
-    out vec4 FragColor;
-    in vec2 TexCoords;
-    uniform sampler2D screenTexture;
-
-    const float offset = 1.0 / 300.0;
-
-    void main()
-    {
-      vec2 offsets[9] = vec2[](
-          vec2(-offset,  offset), // top-left
-          vec2( 0.0f,    offset), // top-center
-          vec2( offset,  offset), // top-right
-          vec2(-offset,  0.0f),   // center-left
-          vec2( 0.0f,    0.0f),   // center-center
-          vec2( offset,  0.0f),   // center-right
-          vec2(-offset, -offset), // bottom-left
-          vec2( 0.0f,   -offset), // bottom-center
-          vec2( offset, -offset)  // bottom-right
-      );
-
-      float kernel[9] = float[](
-           1,  1,  1,
-           1, -8,  1,
-           1,  1,  1
-      );
-
-      vec3 sampleTex[9];
-      for(int i = 0; i < 9; i++)
-      {
-          sampleTex[i] = vec3(texture(screenTexture, TexCoords.st + offsets[i]));
-      }
-      vec3 col = vec3(0.0);
-      for(int i = 0; i < 9; i++)
-          col += sampleTex[i] * kernel[i];
-
-      FragColor = vec4(col, 1.0);
-      }
-  )";
-
-  std::string skyBoxVSsrc = R"(
-      #version 430 core
-      layout (location = 0) in vec3 aPos;
-
-      out vec3 TexCoords;
-
-      layout (std140, binding = 0) uniform matrixVP {
-        mat4 view;
-        mat4 projection;
-      };
-
-      uniform mat4 skyBoxView;
-
-      void main()
-      {
-          TexCoords = aPos;
-          gl_Position = projection * skyBoxView * vec4(aPos, 1.0);
-      }
-  )";
-
-  std::string skyBoxFSsrc = R"(
-    #version 430 core
-    out vec4 FragColor;
-
-    in vec3 TexCoords;
-
-    uniform samplerCube skybox;
-
-    void main()
-    {
-        FragColor = texture(skybox, TexCoords);
-    }
-  )";
-
-  std::string cmReflectVs = R"(
-    #version 430 core
-    layout (location = 0) in vec3 aPos;
-    layout (location = 1) in vec3 aNormal;
-    layout (location = 2) in vec2 aTexCoord;
-
-    out vec3 Normal;
-    out vec3 Position;
-
-    uniform mat4 model;
-    layout (std140, binding = 0) uniform matrixVP {
-        mat4 view;
-        mat4 projection;
-    };
-
-    void main()
-    {
-        Normal = mat3(transpose(inverse(model))) * aNormal;
-        Position = vec3(model * vec4(aPos, 1.0));
-        gl_Position = projection * view * vec4(Position, 1.0);
-    }
-  )";
-
-  std::string cmReflectFs = R"(
-    #version 430 core
-    out vec4 FragColor;
-
-    in vec3 Normal;
-    in vec3 Position;
-
-    uniform vec3 cameraPos;
-    uniform samplerCube skybox;
-
-    void main()
-    {
-        vec3 I = normalize(Position - cameraPos);
-        vec3 R = reflect(I, normalize(Normal));
-        FragColor = vec4(texture(skybox, R).rgb, 1.0);
-    }
-  )";
-
-  std::string cmRefractFs = R"(
-    #version 430 core
-    out vec4 FragColor;
-
-    in vec3 Normal;
-    in vec3 Position;
-
-    uniform float refractiveIndex;
-    uniform vec3 cameraPos;
-    uniform samplerCube skybox;
-
-    void main()
-    {
-        float ratio = 1.00 / refractiveIndex;
-        vec3 I = normalize(Position - cameraPos);
-        vec3 R = refract(I, normalize(Normal), ratio);
-        FragColor = vec4(texture(skybox, R).rgb, 1.0);
-    }
-  )";
 
   std::unique_ptr<Shader> simpleShader            = std::make_unique<Shader>(simpleVScode, simpleFScode);
   std::unique_ptr<Shader> effectNegative          = std::make_unique<Shader>(simpleVScode, simpleFSnegative);
@@ -1497,6 +1226,7 @@ void Engine::CreateShaders()
   _shaders.push_back(std::move(skyBoxS));
   _shaders.push_back(std::move(cmReflect));
   _shaders.push_back(std::move(cmRefract));
+  _shaders.push_back(std::move(geomEffect));
 
   // simple shader to render screen quad (idx = 5)
   _effects.push_back(std::move(simpleShader));

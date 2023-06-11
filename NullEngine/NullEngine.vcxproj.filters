@@ -45,6 +45,9 @@
     <ClInclude Include="src\Model.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="src\Shaders\ShaderSources.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Dependencies\glad\src\glad.c">
@@ -90,5 +93,8 @@
     <None Include="src\Shaders\LightSourceF.glsl" />
     <None Include="src\Shaders\LightingCubeV_Gouraud.glsl" />
     <None Include="src\Shaders\LightingCubeF_Gouraud.glsl" />
+    <None Include="src\Shaders\geometryEffect0.glsl" />
+    <None Include="src\Shaders\geomShaderPassThru.glsl" />
+    <None Include="src\Shaders\lightingObjectGF.glsl" />
   </ItemGroup>
 </Project>

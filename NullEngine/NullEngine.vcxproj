@@ -29,26 +29,26 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v142</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -171,6 +171,7 @@
     <ClInclude Include="src\Model.h" />
     <ClInclude Include="src\ObjectVertices.h" />
     <ClInclude Include="src\Shader.h" />
+    <ClInclude Include="src\Shaders\ShaderSources.hpp" />
     <ClInclude Include="src\Texture.h" />
     <ClInclude Include="src\Vertex.h" />
   </ItemGroup>
@@ -188,8 +189,11 @@
     <ClCompile Include="src\Texture.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="src\Shaders\geometryEffect0.glsl" />
+    <None Include="src\Shaders\geomShaderPassThru.glsl" />
     <None Include="src\Shaders\LightingCubeF_Gouraud.glsl" />
     <None Include="src\Shaders\LightingCubeV_Gouraud.glsl" />
+    <None Include="src\Shaders\lightingObjectGF.glsl" />
     <None Include="src\Shaders\LightSourceF.glsl" />
     <None Include="src\Shaders\LightingCubeF.glsl" />
     <None Include="src\Shaders\FragmentShader.glsl" />
