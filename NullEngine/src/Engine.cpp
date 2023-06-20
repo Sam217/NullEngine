@@ -194,22 +194,22 @@ void Engine::processInput(float dt)
     leastInterval = 0.0f;
   }
 
-  if (glfwGetKey(_window, GLFW_KEY_KP_0) == GLFW_PRESS && _effects[0].get())
-    _currentEffect = _effects[0].get();
-  if (glfwGetKey(_window, GLFW_KEY_KP_1) == GLFW_PRESS && _effects[1].get())
-    _currentEffect = _effects[1].get();
-  if (glfwGetKey(_window, GLFW_KEY_KP_2) == GLFW_PRESS && _effects[2].get())
-    _currentEffect = _effects[2].get();
-  if (glfwGetKey(_window, GLFW_KEY_KP_3) == GLFW_PRESS && _effects[3].get())
-    _currentEffect = _effects[3].get();
-  if (glfwGetKey(_window, GLFW_KEY_KP_4) == GLFW_PRESS && _effects[4].get())
-    _currentEffect = _effects[4].get();
-  if (glfwGetKey(_window, GLFW_KEY_KP_5) == GLFW_PRESS && _effects[5].get())
-    _currentEffect = _effects[5].get();
-  if (glfwGetKey(_window, GLFW_KEY_KP_6) == GLFW_PRESS && _effects[6].get())
-    _currentEffect = _effects[6].get();
-  if (glfwGetKey(_window, GLFW_KEY_KP_7) == GLFW_PRESS && _effects[7].get())
-    _currentEffect = _effects[7].get();
+  if (glfwGetKey(_window, GLFW_KEY_KP_0) == GLFW_PRESS && _shaders[(int)ShadersTypes::SimpleShader].get())
+    _currentEffect = _shaders[(int)ShadersTypes::SimpleShader].get();
+  if (glfwGetKey(_window, GLFW_KEY_KP_1) == GLFW_PRESS && _shaders[(int)ShadersTypes::EffectNegative].get())
+    _currentEffect = _shaders[(int)ShadersTypes::EffectNegative].get();
+  if (glfwGetKey(_window, GLFW_KEY_KP_2) == GLFW_PRESS && _shaders[(int)ShadersTypes::EffectGreyScale].get())
+    _currentEffect = _shaders[(int)ShadersTypes::EffectGreyScale].get();
+  if (glfwGetKey(_window, GLFW_KEY_KP_3) == GLFW_PRESS && _shaders[(int)ShadersTypes::EffectGreyScaleWeighted].get())
+    _currentEffect = _shaders[(int)ShadersTypes::EffectGreyScaleWeighted].get();
+  if (glfwGetKey(_window, GLFW_KEY_KP_4) == GLFW_PRESS && _shaders[(int)ShadersTypes::EffectSharpen].get())
+    _currentEffect = _shaders[(int)ShadersTypes::EffectSharpen].get();
+  if (glfwGetKey(_window, GLFW_KEY_KP_5) == GLFW_PRESS && _shaders[(int)ShadersTypes::EffectBlur].get())
+    _currentEffect = _shaders[(int)ShadersTypes::EffectBlur].get();
+  if (glfwGetKey(_window, GLFW_KEY_KP_6) == GLFW_PRESS && _shaders[(int)ShadersTypes::EffectEdge].get())
+    _currentEffect = _shaders[(int)ShadersTypes::EffectEdge].get();
+  if (glfwGetKey(_window, GLFW_KEY_KP_7) == GLFW_PRESS && _shaders[(int)ShadersTypes::SimpleShader].get())
+    _currentEffect = _shaders[(int)ShadersTypes::SimpleShader].get();
 
   // camera
   _camera.ProcessKeyboard((GLFWwindow*)_window, dt);
@@ -524,14 +524,14 @@ int Engine::Main()
   //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 
-  _shaders[0]->Use();
-  _shaders[0]->SetInt("texture1", 0);
-  _shaders[0]->SetInt("texture2", 1);
+  _shaders[(int)ShadersTypes::VertexFragment0]->Use();
+  _shaders[(int)ShadersTypes::VertexFragment0]->SetInt("texture1", 0);
+  _shaders[(int)ShadersTypes::VertexFragment0]->SetInt("texture2", 1);
 
-  Shader* objectShader = _shaders[2].get();
-  Shader* lightSourceCube = _shaders[3].get();
-  Shader* skyBoxShader = _shaders[5].get();
-  Shader* cubeMapReflect = _shaders[6].get();
+  Shader* objectShader = _shaders[(int)ShadersTypes::LightingCube].get();
+  Shader* lightSourceCube = _shaders[(int)ShadersTypes::LightSource].get();
+  Shader* skyBoxShader = _shaders[(int)ShadersTypes::SkyBoxS].get();
+  Shader* cmReflectRefract = _shaders[(int)ShadersTypes::CubeMapReflect].get();
 
   std::vector<Shader*> activeShaders = {objectShader, lightSourceCube};// _shaders[0].get()};
 
@@ -664,7 +664,7 @@ int Engine::Main()
           static int shObj_selectedRi = -1;
           static int shCon_selectedRi = -1;
 
-          static const char* itemsObjs[] = {"Phong classic", "CubeMap reflection", "CM-Refraction", "Phong explosion"};
+          static const char* itemsObjs[] = {"Phong classic", "CubeMap reflection", "CM-Refraction", "Phong explosion", "VisualizeNormals"};
           static const char* itemsContainers[] = {"CubeMap reflection", "Phong classic", "CM-Refraction"};
           ImGui::Combo("Object shader", &shaderObj_current, itemsObjs, _countof(itemsObjs), 2);
           ImGui::SameLine(); HelpMarker(
@@ -697,38 +697,42 @@ int Engine::Main()
           // perform shader setup
           if (shaderObj_current == 0)
           {
-            objectShader = _shaders[2].get();
+            objectShader = _shaders[(int)ShadersTypes::LightingCube].get();
           }
           else if (shaderObj_current == 1)
           {
-            objectShader = _shaders[6].get();
+            objectShader = _shaders[(int)ShadersTypes::CubeMapReflect].get();
           }
           else if (shaderObj_current == 2)
           {
-            objectShader = _shaders[7].get();
+            objectShader = _shaders[(int)ShadersTypes::CubeMapRefract].get();
             objectShader->Use();
             int ri = shObj_selectedRi >= 0 ? shObj_selectedRi : 0;
             objectShader->SetFloat("refractiveIndex", refractiveIds[ri].second);
           }
           else if (shaderObj_current == 3)
           {
-            objectShader = _shaders[8].get();
+            objectShader = _shaders[(int)ShadersTypes::LightingCubeExplosion].get();
+          }
+          else if (shaderObj_current == 4)
+          {
+            objectShader = _shaders[(int)ShadersTypes::VisualizeNormals].get();
           }
 
           if (shaderCont_current == 0)
           {
-            cubeMapReflect = _shaders[6].get();
+            cmReflectRefract = _shaders[(int)ShadersTypes::CubeMapReflect].get();
           }
           else if (shaderCont_current == 1)
           {
-            cubeMapReflect = _shaders[2].get();
+            cmReflectRefract = _shaders[(int)ShadersTypes::LightingCube].get();
           }
           else if (shaderCont_current == 2)
           {
-            cubeMapReflect = _shaders[7].get();
-            cubeMapReflect->Use();
+            cmReflectRefract = _shaders[(int)ShadersTypes::CubeMapRefract].get();
+            cmReflectRefract->Use();
             int ri = shCon_selectedRi >= 0 ? shCon_selectedRi : 0;
-            cubeMapReflect->SetFloat("refractiveIndex", refractiveIds[ri].second);
+            cmReflectRefract->SetFloat("refractiveIndex", refractiveIds[ri].second);
           }
         }
 
@@ -925,14 +929,14 @@ int Engine::Main()
 
       auto setShaderVars = [&](Shader* sh)
       {
-        if (sh->_ID == _shaders[6]->_ID || sh->_ID == _shaders[7]->_ID)
+        if (sh->_ID == _shaders[(int)ShadersTypes::CubeMapReflect]->_ID || sh->_ID == _shaders[(int)ShadersTypes::CubeMapRefract]->_ID)
         {
           sh->Use();
           sh->SetVec3("cameraPos", cam._pos);
           // sh->SetMat4("view", view);
           // sh->SetMat4("projection", projection);
         }
-        else if (sh->_ID == _shaders[2]->_ID || sh->_ID == _shaders[8]->_ID)
+        else if (sh->_ID == _shaders[(int)ShadersTypes::LightingCube]->_ID || sh->_ID == _shaders[(int)ShadersTypes::LightingCubeExplosion]->_ID)
         {
           sh->Use();
 
@@ -949,7 +953,7 @@ int Engine::Main()
           sh->SetFloat("spotLight.linear", 0.09f);
           sh->SetFloat("spotLight.quadratic", 0.032f);
 
-          if (sh->_ID == _shaders[8]->_ID)
+          if (sh->_ID == _shaders[(int)ShadersTypes::LightingCubeExplosion]->_ID)
           {
             sh->SetFloat("time", frameEnd);
           }
@@ -957,11 +961,11 @@ int Engine::Main()
       };
 
       setShaderVars(objectShader);
-      setShaderVars(cubeMapReflect);
+      setShaderVars(cmReflectRefract);
 
       auto drawContainers = [&]()
       {
-        cubeMapReflect->Use();
+        cmReflectRefract->Use();
         glBindVertexArray(VAOs[0]);
         for (int i = 0; i < _materials.size(); ++i)
         {
@@ -981,7 +985,7 @@ int Engine::Main()
 
           angle = rotTime * (-20.0f);
           model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f * sin(time), 0.5f));
-          cubeMapReflect->SetMat4("model", model);
+          cmReflectRefract->SetMat4("model", model);
 
           glDrawArrays(GL_TRIANGLES, 0, 36);
         }
@@ -1205,6 +1209,7 @@ void Engine::CreateShaders()
   std::unique_ptr<Shader> shaderGouraud(new Shader((root + "LightingCubeV_Gouraud.glsl").c_str(), (root + "LightingCubeF_Gouraud.glsl").c_str()));
   /*std::unique_ptr<Shader> shader1 = std::make_unique<Shader>((root + "VertexShader.glsl").c_str(), (root + "FragmentShader.glsl").c_str());
   std::unique_ptr<Shader> shader2 = std::make_unique<Shader>((root + "VertexShader.glsl").c_str(), (root + "FragmentShader2.glsl").c_str());*/
+  std::unique_ptr<Shader> visualizeNormals(new Shader((root + "VisualizeNormalsVS.glsl").c_str(), (root + "VisualizeNormalsFS.glsl").c_str(), (root + "VisualizeNormalsGS.glsl").c_str()));
 
   std::unique_ptr<Shader> simpleShader            = std::make_unique<Shader>(simpleVScode, simpleFScode);
   std::unique_ptr<Shader> effectNegative          = std::make_unique<Shader>(simpleVScode, simpleFSnegative);
@@ -1217,31 +1222,33 @@ void Engine::CreateShaders()
   std::unique_ptr<Shader> skyBoxS                 = std::make_unique<Shader>(skyBoxVSsrc, skyBoxFSsrc);
   std::unique_ptr<Shader> cmReflect               = std::make_unique<Shader>(cmReflectVs, cmReflectFs);
   std::unique_ptr<Shader> cmRefract               = std::make_unique<Shader>(cmReflectVs, cmRefractFs);
+  //std::unique_ptr<Shader> visualizeNormals = std::make_unique<Shader>(visualizeNormalsVS, visualizeNormalsFS, visualizeNormalsGS);
 
-  _shaders.push_back(std::move(shader1));
-  _shaders.push_back(std::move(shader2));
-  _shaders.push_back(std::move(shaderL));
-  _shaders.push_back(std::move(shaderLs));
-  _shaders.push_back(std::move(shaderGouraud));
-  _shaders.push_back(std::move(skyBoxS));
-  _shaders.push_back(std::move(cmReflect));
-  _shaders.push_back(std::move(cmRefract));
-  _shaders.push_back(std::move(geomEffect));
 
-  // simple shader to render screen quad (idx = 5)
-  _effects.push_back(std::move(simpleShader));
-  _currentEffect = _effects[0].get();
+  _shaders.resize((int)ShadersTypes::NShaderTypes);
+
+  _shaders[(int)ShadersTypes::VertexFragment0] = std::move(shader1);
+  _shaders[(int)ShadersTypes::VertexFragment1] = std::move(shader2);
+  _shaders[(int)ShadersTypes::LightingCube] = std::move(shaderL);
+  _shaders[(int)ShadersTypes::LightSource] = std::move(shaderLs);
+  _shaders[(int)ShadersTypes::LightingCubeGouraud] = std::move(shaderGouraud);
+  _shaders[(int)ShadersTypes::SkyBoxS] = std::move(skyBoxS);
+  _shaders[(int)ShadersTypes::CubeMapReflect] = std::move(cmReflect);
+  _shaders[(int)ShadersTypes::CubeMapRefract] = std::move(cmRefract);
+  _shaders[(int)ShadersTypes::LightingCubeExplosion] = std::move(geomEffect);
+  _shaders[(int)ShadersTypes::VisualizeNormals] = std::move(visualizeNormals);
 
   // effects
-  _effects.push_back(std::move(effectNegative));
-  _effects.push_back(std::move(effectGreyScale));
-  _effects.push_back(std::move(effectGreyScaleWeighted));
-  _effects.push_back(std::move(effectSharpen));
-  _effects.push_back(std::move(effectBlur));
-  _effects.push_back(std::move(effectEdge));
+  _shaders[(int)ShadersTypes::SimpleShader] = std::move(simpleShader);
+  _shaders[(int)ShadersTypes::EffectNegative] = std::move(effectNegative);
+  _shaders[(int)ShadersTypes::EffectGreyScale] = std::move(effectGreyScale);
+  _shaders[(int)ShadersTypes::EffectGreyScaleWeighted] = std::move(effectGreyScaleWeighted);
+  _shaders[(int)ShadersTypes::EffectSharpen] = std::move(effectSharpen);
+  _shaders[(int)ShadersTypes::EffectBlur] = std::move(effectBlur);
+  _shaders[(int)ShadersTypes::EffectEdge] = std::move(effectEdge);
 
-  // DIRTY solution
-  _effects.resize(8);
+  // simple shader to render screen quad (idx = 5)
+  _currentEffect = _shaders[(int)ShadersTypes::SimpleShader].get();
 }
 
 void Engine::InitVertices()

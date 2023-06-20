@@ -49,72 +49,13 @@ Shader::Shader(const char* vertexPath, const char* fragmentPath, const char* geo
     {
         std::cout << "ERROR::SHADER::FILE_NOT_SUCCESFULLY_READ" << std::endl;
     }
-    const char* vShaderCode = vertexCode.c_str();
-    const char* fShaderCode = fragmentCode.c_str();
-
-    unsigned vertex = CompileShader(GL_VERTEX_SHADER, vShaderCode);
-    unsigned fragment = CompileShader(GL_FRAGMENT_SHADER, fShaderCode);
-    unsigned geometry = -1;
-
-    _ID = glCreateProgram();
-
-    int success;
-    char infoLog[512];
-
-    glAttachShader(_ID, vertex);
-    glAttachShader(_ID, fragment);
-    if (geomShPath)
-    {
-      geometry = CompileShader(GL_GEOMETRY_SHADER, geometryShaderCode.c_str());
-      glAttachShader(_ID, geometry);
-    }
-
-    glLinkProgram(_ID);
-
-    // print linking errors if any
-    glGetProgramiv(_ID, GL_LINK_STATUS, &success);
-    if (!success)
-    {
-        glGetProgramInfoLog(_ID, 512, NULL, infoLog);
-        std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
-    }
-
-    // delete the shaders as they're linked into our program now and no longer necessary
-    glDeleteShader(vertex);
-    glDeleteShader(fragment);
-    if (geometry > 0)
-    {
-      glDeleteShader(geometry);
-    }
+    
+    InitFromStrings(vertexCode, fragmentCode, geometryShaderCode);
 }
 
-Shader::Shader(std::string& vertexCode, std::string& fragmentCode)
+Shader::Shader(const std::string& vertexCode, const std::string& fragmentCode, const std::string& geomShCode)
 {
-  const char* vShaderCode = vertexCode.c_str();
-  const char* fShaderCode = fragmentCode.c_str();
-
-  unsigned vertex = CompileShader(GL_VERTEX_SHADER, vShaderCode);
-  unsigned fragment = CompileShader(GL_FRAGMENT_SHADER, fShaderCode);
-
-  _ID = glCreateProgram();
-
-  int success;
-  char infoLog[512];
-
-  glAttachShader(_ID, vertex);
-  glAttachShader(_ID, fragment);
-  glLinkProgram(_ID);
-  // print linking errors if any
-  glGetProgramiv(_ID, GL_LINK_STATUS, &success);
-  if (!success)
-  {
-    glGetProgramInfoLog(_ID, 512, NULL, infoLog);
-    std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
-  }
-
-  // delete the shaders as they're linked into our program now and no longer necessary
-  glDeleteShader(vertex);
-  glDeleteShader(fragment);
+  InitFromStrings(vertexCode, fragmentCode, geomShCode);
 }
 
 Shader::~Shader()
@@ -188,6 +129,47 @@ void Shader::SetMat3(const std::string& name, const glm::mat3& mat) const
 void Shader::SetMat4(const std::string& name, const glm::mat4& mat) const
 {
   glUniformMatrix4fv(glGetUniformLocation(_ID, name.c_str()), 1, GL_FALSE, &mat[0][0]);
+}
+
+void Shader::InitFromStrings(const std::string& vertexCode, const std::string& fragmentCode, const std::string& geomShCode)
+{
+  const char* vShaderCode = vertexCode.c_str();
+  const char* fShaderCode = fragmentCode.c_str();
+
+  unsigned vertex = CompileShader(GL_VERTEX_SHADER, vShaderCode);
+  unsigned fragment = CompileShader(GL_FRAGMENT_SHADER, fShaderCode);
+  unsigned geometry = -1;
+
+  _ID = glCreateProgram();
+
+  int success;
+  char infoLog[512];
+
+  glAttachShader(_ID, vertex);
+  glAttachShader(_ID, fragment);
+  if (!geomShCode.empty())
+  {
+    geometry = CompileShader(GL_GEOMETRY_SHADER, geomShCode.c_str());
+    glAttachShader(_ID, geometry);
+  }
+
+  glLinkProgram(_ID);
+
+  // print linking errors if any
+  glGetProgramiv(_ID, GL_LINK_STATUS, &success);
+  if (!success)
+  {
+    glGetProgramInfoLog(_ID, 512, NULL, infoLog);
+    std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
+  }
+
+  // delete the shaders as they're linked into our program now and no longer necessary
+  glDeleteShader(vertex);
+  glDeleteShader(fragment);
+  if (geometry > 0)
+  {
+    glDeleteShader(geometry);
+  }
 }
 
 unsigned Shader::CompileShader(unsigned shaderType, const char* shaderSource)

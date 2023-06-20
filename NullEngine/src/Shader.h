@@ -16,7 +16,7 @@ public:
     // constructor reads and builds the shader from file
     Shader(const char* vertexPath, const char* fragmentPath, const char* geomShPath = nullptr);
     // constructor reads and builds the shader directly from string
-    Shader(std::string& vertexCode, std::string& fragmentCode);
+    Shader(const std::string& vertexCode, const std::string& fragmentCode, const std::string& geomShCode = "");
     // Destructor - deletes shader program from openGL
     ~Shader();
     // Use/activate the shader
@@ -46,6 +46,8 @@ public:
     void SetMat4(const std::string& name, const glm::mat4& mat) const;
 
 private:
+    // Init from std::string
+  void InitFromStrings(const std::string& vertexCode, const std::string& fragmentCode, const std::string& geomShCode = "");
     // Compile routine
     unsigned CompileShader(unsigned shaderType, const char* shaderSource);
 };

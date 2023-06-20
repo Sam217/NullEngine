@@ -60,10 +60,8 @@ namespace NullEngine {
 		//
 		int _height = 1080;
 
-		//! list of shaders
+		//! list of shaders & effects
 		std::vector<std::unique_ptr<Shader>> _shaders;
-		//! list of shaders - effects
-		std::vector<std::unique_ptr<Shader>> _effects;
 		const Shader* _currentEffect = nullptr;
 		//!
 		std::vector<std::vector<float>> _vertices;
@@ -115,6 +113,31 @@ namespace NullEngine {
 		//************************************
 		static void Mouse_callback(GLFWwindow* window, double xpos, double ypos);
 		static void Scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
+	};
+
+	enum class ShadersTypes
+	{
+		VertexFragment0,
+		VertexFragment1,
+		LightingCube,
+		LightSource,
+		LightingCubeExplosion,
+		LightingCubeGouraud,
+
+		SimpleShader,
+		EffectNegative,
+		EffectGreyScale,
+		EffectGreyScaleWeighted,
+		EffectSharpen,
+		EffectBlur,
+		EffectEdge,
+
+		SkyBoxS,
+		CubeMapReflect,
+		CubeMapRefract,
+		VisualizeNormals,
+
+		NShaderTypes
 	};
 
 } // namespace NullEngine
