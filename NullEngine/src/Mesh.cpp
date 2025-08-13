@@ -9,7 +9,7 @@ Mesh::Mesh(vector<Vertex>&& vertices, vector<unsigned int>&& indices, vector<std
   this->_indices = std::move(indices);
   this->_textures = std::move(textures);
 
-  setupMesh();
+  SetupMesh();
 }
 
 //Mesh::~Mesh()
@@ -45,7 +45,7 @@ void Mesh::Draw(Shader& shader)
   glBindVertexArray(0);
 }
 
-void Mesh::setupMesh()
+void Mesh::SetupMesh()
 {
   glGenVertexArrays(1, &VAO);
   glGenBuffers(1, &VBO);

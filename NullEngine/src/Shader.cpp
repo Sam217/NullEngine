@@ -49,7 +49,7 @@ Shader::Shader(const char* vertexPath, const char* fragmentPath, const char* geo
     {
         std::cout << "ERROR::SHADER::FILE_NOT_SUCCESFULLY_READ" << std::endl;
     }
-    
+
     InitFromStrings(vertexCode, fragmentCode, geometryShaderCode);
 }
 
