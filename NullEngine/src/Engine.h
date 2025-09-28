@@ -7,6 +7,7 @@
 #include "IEngine.h"
 #include "Shader.h"
 #include "Camera.h"
+#include "Scene.h"
 
 struct ImGuiIO;
 
@@ -20,11 +21,14 @@ struct Material
 };
 
 namespace NullEngine {
+	class Model;
 
 
 	class Engine : IEngine
 	{
 		friend class Camera;
+
+	public:
 		struct Positions
 		{
 			std::vector<glm::vec3> cubePositions;
@@ -32,7 +36,6 @@ namespace NullEngine {
 			glm::vec3 lightPos;
 		};
 
-	public:
 		static Engine* _engineContext;
 
 		//! Ctor
@@ -68,6 +71,9 @@ namespace NullEngine {
 		std::vector<Material> _materials;
 		Positions _positions;
 
+		//! Some Scene #TODO
+		Scene someScene;
+
 	public:
 		//! Dtor
 		virtual ~Engine() override = default;
@@ -87,6 +93,10 @@ namespace NullEngine {
 		//!
 		void InitVertices();
 		void InitImGui();
+
+		//! Set up some scene #TODO replace by Scene class
+		void Engine::SetUpScene(Texture &containerDiffuseMap, Texture &containerSpecularMap, Texture &containerEmissionMap, CubeMap &skyBoxCubeMap, CubeMap &skyBoxCubeMap2, Model &guitarBag, Model &singapore, Shader &shaderSingleColor, Engine::SkyBox &skyBox, unsigned int (&VAOs)[2], unsigned int (&VBOs)[2], unsigned int (&EBO)[2], unsigned &screenQuadVAO, unsigned &screenQuadVBO, unsigned &framebuf, unsigned &textureColor, unsigned &mirrorQuadVAO, unsigned &mirrorBuf, GLsizei &mirrorWidth, GLsizei &mirrorHeight, unsigned &texMirror, Shader *&objectShader,
+														Shader *&lightSourceCube, Shader *&skyBoxShader, Shader *&cmReflectRefract, float &time, float &deltap, std::vector<glm::vec3> &randvecs, int (&randsgn)[4], int (&randRadius)[4], unsigned &uboVP)
 		//! Process input
 		void processInput(float dt);
 		void ShowAppDockSpace(bool* p_open);

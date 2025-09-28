@@ -13,6 +13,8 @@ public:
     // the program ID
     unsigned int _ID;
 
+    //! Empty construction might not be needed #TODO
+    Shader() = default;
     // constructor reads and builds the shader from file
     Shader(const char* vertexPath, const char* fragmentPath, const char* geomShPath = nullptr);
     // constructor reads and builds the shader directly from string

@@ -96,4 +96,23 @@ bool CubeMap::Load()
   return true;
 }
 
+std::vector<std::string> CubeMap::FacesHelper(const std::string &cmName, const std::string &root, const char *imgType)
+{
+	std::string imgExt;
+	if (imgType)
+		imgExt = imgType;
+	else
+		imgExt = ".jpg";
+
+	std::vector<std::string> faces{
+			root + cmName + "/right" + imgExt,
+			root + cmName + "/left" + imgExt,
+			root + cmName + "/top" + imgExt,
+			root + cmName + "/bottom" + imgExt,
+			root + cmName + "/front" + imgExt,
+			root + cmName + "/back" + imgExt};
+
+	return faces;
+}
+
 } // namespace NullEngine

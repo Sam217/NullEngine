@@ -55,11 +55,22 @@ private:
 class CubeMap : public TextureBase
 {
 public:
-  CubeMap() = default;
+  //! default?
+	CubeMap() = default;
+  //! Constructor tries to find faces via FacesHelper
+	CubeMap(const std::string &name, const std::string &fileBaseName, const std::string &root, const char *imgType = nullptr, int wrapMode = GL_CLAMP_TO_EDGE) : TextureBase(name, GL_TEXTURE_CUBE_MAP, wrapMode)
+	{
+		_faces = FacesHelper(fileBaseName, root, imgType);
+	}
+  //! Construct with given faces
   CubeMap(const std::string& name, const std::vector<std::string>& faces, int wrapMode = GL_CLAMP_TO_EDGE) : TextureBase(name, GL_TEXTURE_CUBE_MAP, wrapMode), _faces(faces) {}
 
+  //! Load with OpenGL
   virtual bool Load() override;
 private:
+  //!
+	static std::vector<std::string> FacesHelper(const std::string &cmName, const std::string &root, const char *imgType = nullptr);
+  //! The six textures, one per face
   std::vector<std::string> _faces;
 };
 

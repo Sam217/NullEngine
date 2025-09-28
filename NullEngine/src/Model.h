@@ -11,6 +11,9 @@ namespace NullEngine
 class Model
 {
 public:
+  //! Empty constructor
+	Model() = default;
+  //! Initializing constructor
   Model(const char* path, const char* texturesPath = nullptr, bool flippedTex = false)
   {
     _flippedTextures = flippedTex;
