@@ -25,7 +25,7 @@ public:
   void Draw(Shader& shader);
 private:
   //  render data
-  unsigned int VAO, VBO, EBO;
+  unsigned int _VAO, _VBO, _EBO;
 
   void SetupMesh();
 };

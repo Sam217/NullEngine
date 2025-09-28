@@ -301,9 +301,9 @@ int Engine::Main()
 {
   InitGLFW();
   CreateShaders();
-  InitVertices();
   InitImGui();
 
+  InitVertices();
   InitPositions();
   InitPhongMaterials();
 
@@ -1499,6 +1499,19 @@ void Engine::InitVertices()
     -1.0f, -1.0f,  1.0f,
      1.0f, -1.0f,  1.0f
   };
+
+  // triangle glowing
+	std::vector<float> quadVertices = {
+			// positions         // colors
+		  -0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 0.0f,
+			-0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f,
+			 0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f,
+
+    // positions         // colors
+			-0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 0.0f,
+			 0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f,
+			 0.5f,  0.5f, 0.0f, 0.0f, 0.0f, 1.0f
+	};
 
   _vertices.push_back(std::move(verticesa));
   _vertices.push_back(std::move(verticesb));
