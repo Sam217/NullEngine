@@ -398,3 +398,8 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+/bin/Intermediates/x64_Debug/*.recipe
+/bin/x64_Debug/*.exe
+/bin/x64_Debug/*.lib
+/bin/x64_Debug/*.dll
+/bin/x64_Debug/*.exp

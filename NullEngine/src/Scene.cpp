@@ -5,6 +5,7 @@
 
 void Scene::SetUp()
 {
+#if 0
 	// obtain resources path
 	std::string root = R"(../Resources/)";
 
@@ -245,4 +246,5 @@ void Scene::SetUp()
 
 	glBindBufferRange(GL_UNIFORM_BUFFER, 0, uboVP, 0, 2 * sizeof(glm::mat4));
 	glBindBuffer(GL_UNIFORM_BUFFER, 0);
+#endif
 }

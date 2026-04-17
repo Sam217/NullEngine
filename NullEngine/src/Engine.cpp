@@ -297,252 +297,6 @@ void Engine::InitPhongMaterials()
   };
 }
 
-void Engine::SetUpScene(Texture &containerDiffuseMap, Texture &containerSpecularMap, Texture &containerEmissionMap, CubeMap &skyBoxCubeMap, CubeMap &skyBoxCubeMap2, Model &guitarBag, Model &singapore, Shader &shaderSingleColor, Engine::SkyBox &skyBox, unsigned int(&VAOs)[2], unsigned int(&VBOs)[2], unsigned int(&EBO)[2], unsigned &screenQuadVAO, unsigned &screenQuadVBO, unsigned &framebuf, unsigned &textureColor, unsigned &mirrorQuadVAO, unsigned &mirrorBuf, GLsizei &mirrorWidth, GLsizei &mirrorHeight, unsigned &texMirror, Shader *&objectShader,
-		Shader *&lightSourceCube, Shader *&skyBoxShader, Shader *&cmReflectRefract, float &time, float &deltap, std::vector<glm::vec3> &randvecs, int(&randsgn)[4], int(&randRadius)[4], unsigned &uboVP)
-{
-	// obtain resources path
-	std::string root = R"(../Resources/)";
-
-	// texture loading from image
-	Texture texture1("container", root + "container.jpg");
-	Texture texture2("AwesomeFace", root + "awesomeface.png", true);
-	texture1.Load();
-	texture2.Load();
-
-	containerDiffuseMap = Texture("containerWood", root + "container2.png");
-	containerSpecularMap = Texture("containerSteelBorder", root + "container2_specular.png");
-	containerEmissionMap = Texture("containerEmission", root + "matrix_container.png");
-	containerDiffuseMap.Load();
-	containerSpecularMap.Load();
-	containerEmissionMap.Load();
-
-	skyBoxCubeMap = CubeMap("LearnOpenGLskyBox", "skybox", root);
-	skyBoxCubeMap.Load();
-
-	skyBoxCubeMap2 = CubeMap("LearnOpenGLskyBox2", "skybox2", root, ".png");
-	skyBoxCubeMap2.Load();
-
-	guitarBag = Model("../Resources/backpack/backpack.obj", nullptr, true);
-	singapore = "../Resources/singapore/untitled.obj";
-	//Model destructor("../Resources/destructor-pesado-imperial-isd-1/Destructor imperial ISD 1.obj");
-	//Model sponza("../Resources/sponza/source/sponza.fbx", "../Resources/sponza/textures", false);
-
-	std::string shaderRoot = "../LearnOpenGL_guide/shaders/";
-	shaderSingleColor = Shader((shaderRoot + "2.stencil_testing.vs").c_str(), (shaderRoot + "2.stencil_single_color.fs").c_str());
-
-	skyBox = {_vertices[9]};
-
-	glGenVertexArrays(2, VAOs);
-
-	glGenBuffers(2, VBOs);
-
-	glGenBuffers(2, EBO);
-
-	// 1. bind Vertex Array Object
-	glBindVertexArray(VAOs[0]);
-	// 2. copy our vertices array in a buffer for OpenGL to use
-
-	auto& cubeLsource = _vertices[4];
-	auto& cubeOb = _vertices[6];
-
-	glBindBuffer(GL_ARRAY_BUFFER, VBOs[0]);
-	glBufferData(GL_ARRAY_BUFFER, cubeOb.size() * sizeof(float), cubeOb.data(), GL_STATIC_DRAW);
-
-	// 3. then set our vertex attributes pointers
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(0);
-
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
-	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 *sizeof(float)));
-	glEnableVertexAttribArray(2);
-
-	// note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-	// You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
-	// VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
-	glBindVertexArray(0);
-
-	// remember: do NOT unbind the EBO while a VAO is active as the bound element buffer object IS stored in the VAO; keep the EBO bound.
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-
-	//------------- bind vertex array object for 'light cube'
-	glBindVertexArray(VAOs[1]);
-
-	glBindBuffer(GL_ARRAY_BUFFER, VBOs[1]);
-	glBufferData(GL_ARRAY_BUFFER, cubeLsource.size() * sizeof(float), cubeLsource.data(), GL_STATIC_DRAW);
-
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(0);
-	/*glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
-  glEnableVertexAttribArray(1);*/
-
-	// note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-	glBindVertexArray(0);
-
-	glGenVertexArrays(1, &screenQuadVAO);
-	glGenBuffers(1, &screenQuadVBO);
-	glBindVertexArray(screenQuadVAO);
-	glBindBuffer(GL_ARRAY_BUFFER, screenQuadVBO);
-
-	auto& quadVertices = _vertices[7];
-	glBufferData(GL_ARRAY_BUFFER, quadVertices.size() * sizeof(float), quadVertices.data(), GL_STATIC_DRAW);
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
-
-	glGenFramebuffers(1, &framebuf);
-	glBindFramebuffer(GL_FRAMEBUFFER, framebuf);
-
-	const GLsizei Width = _width, Height = _height;
-	glGenTextures(1, &textureColor);
-	glBindTexture(GL_TEXTURE_2D, textureColor);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, Width, Height, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	/*glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);*/
-	glBindTexture(GL_TEXTURE_2D, 0);
-
-	// attach the color texture to the framebuffer
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureColor, 0);
-
-	// Create render buffer object
-	unsigned renderBuf;
-	glGenRenderbuffers(1, &renderBuf);
-	glBindRenderbuffer(GL_RENDERBUFFER, renderBuf);
-	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, Width, Height);
-	glBindRenderbuffer(GL_RENDERBUFFER, 0);
-
-	// attach render buffer to framebuffer
-	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, renderBuf);
-
-	// framebuffer must be complete
-	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-	{
-		std::cout << "NULLENGINE::ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
-	}
-
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-	// Render to mirror texture
-	unsigned mirrorQuadVBO;
-	glGenVertexArrays(1, &mirrorQuadVAO);
-	glGenBuffers(1, &mirrorQuadVBO);
-	glBindVertexArray(mirrorQuadVAO);
-	glBindBuffer(GL_ARRAY_BUFFER, mirrorQuadVBO);
-
-	auto& mirrorVertices = _vertices[8];
-	glBufferData(GL_ARRAY_BUFFER, mirrorVertices.size() * sizeof(float), mirrorVertices.data(), GL_STATIC_DRAW);
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
-
-	glGenFramebuffers(1, &mirrorBuf);
-	glBindFramebuffer(GL_FRAMEBUFFER, mirrorBuf);
-
-	mirrorWidth = _width;
-	mirrorHeight = _height;
-	glGenTextures(1, &texMirror);
-	glBindTexture(GL_TEXTURE_2D, texMirror);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, mirrorWidth, mirrorHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glBindTexture(GL_TEXTURE_2D, 0);
-
-	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texMirror, 0);
-
-	unsigned mirrorRenderBuf;
-	glGenRenderbuffers(1, &mirrorRenderBuf);
-	glBindRenderbuffer(GL_RENDERBUFFER, mirrorRenderBuf);
-	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, mirrorWidth, mirrorHeight);
-	glBindRenderbuffer(GL_RENDERBUFFER, 0);
-
-	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, mirrorRenderBuf);
-
-	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-	{
-		std::cout << "NULLENGINE::ERROR::FRAMEBUFFER:: Mirror framebuffer not complete!" << std::endl;
-	}
-
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-	//-------------------------------
-
-	// Wireframe or normal drawing mode
-	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-	//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
-
-	_shaders[(int)ShadersTypes::VertexFragment0]->Use();
-	_shaders[(int)ShadersTypes::VertexFragment0]->SetInt("texture1", 0);
-	_shaders[(int)ShadersTypes::VertexFragment0]->SetInt("texture2", 1);
-
-	objectShader = _shaders[(int)ShadersTypes::LightingCube].get();
-	lightSourceCube = _shaders[(int)ShadersTypes::LightSource].get();
-	skyBoxShader = _shaders[(int)ShadersTypes::SkyBoxS].get();
-	cmReflectRefract = _shaders[(int)ShadersTypes::CubeMapReflect].get();
-
-	std::vector<Shader*> activeShaders = {objectShader, lightSourceCube};// _shaders[0].get()};
-
-	// this enables Z-buffer so that faces overlap correctly when projected to the screen
-	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_STENCIL_TEST);
-	glEnable(GL_CULL_FACE);
-	glFrontFace(GL_CCW);
-
-	time = 0.0f;
-	float timeLast = 0.0f;
-	deltap = 0.0f;
-
-	// randomize some cube positions
-	std::random_device r;
-	std::mt19937 gen(r());
-	float range = 5.0f;
-	std::uniform_real_distribution<float> uniform_dist(-range, range);
-
-	for (int i = 0; i < _materials.size(); ++i)
-	{
-		glm::vec3 randvec((float)uniform_dist(gen), (float)uniform_dist(gen), (float)uniform_dist(gen));
-		randvecs.push_back(randvec);
-	}
-
-	std::uniform_int_distribution<int> uni_sgn(1, 2);
-	std::uniform_real_distribution<float> uni_rad(5.0f, 20.0f);
-	for (int i = 0; i < 4; ++i)
-	{
-		randsgn[i] = uni_sgn(gen) == 1 ? -1 : 1;
-		randRadius[i] = (int)uni_rad(gen);
-	}
-
-	objectShader->Use();
-	objectShader->SetInt("material.diffuse", 0);
-
-	glActiveTexture(GL_TEXTURE0);
-	containerDiffuseMap.Use();
-
-	objectShader->SetInt("material.specular", 1);
-	glActiveTexture(GL_TEXTURE1);
-	containerSpecularMap.Use();
-
-	objectShader->SetInt("material.emissive", 2);
-	glActiveTexture(GL_TEXTURE2);
-	containerEmissionMap.Use();
-
-	glGenBuffers(1, &uboVP);
-	glBindBuffer(GL_UNIFORM_BUFFER, uboVP);
-	// allocate memory for two float4x4 matrices
-	glBufferData(GL_UNIFORM_BUFFER, 2 * sizeof(glm::mat4), nullptr, GL_DYNAMIC_DRAW);
-
-	glBindBufferRange(GL_UNIFORM_BUFFER, 0, uboVP, 0, 2 * sizeof(glm::mat4));
-	glBindBuffer(GL_UNIFORM_BUFFER, 0);
-}
-
 int Engine::Main()
 {
   InitGLFW();
@@ -553,39 +307,10 @@ int Engine::Main()
   InitPositions();
   InitPhongMaterials();
 
-  Texture containerDiffuseMap;
-  Texture containerSpecularMap;
-  Texture containerEmissionMap;
-  CubeMap skyBoxCubeMap;
-  CubeMap skyBoxCubeMap2;
-  Model guitarBag;
-  Model singapore;
-  Shader shaderSingleColor;
-  SkyBox skyBox;
-  unsigned int VAOs[2];
-  unsigned int VBOs[2];
-  unsigned int EBO[2];
-  unsigned screenQuadVAO;
-  unsigned screenQuadVBO;
-  unsigned framebuf;
-  unsigned textureColor;
-  unsigned mirrorQuadVAO;
-  unsigned mirrorBuf;
-  GLsizei mirrorWidth;
-  GLsizei mirrorHeight;
-  unsigned texMirror;
-  Shader *objectShader;
-  Shader *lightSourceCube;
-  Shader *skyBoxShader;
-  Shader *cmReflectRefract;
-  float time;
-  float deltap;
-  std::vector<glm::vec3> randvecs;
-  int randsgn[4];
-  int randRadius[4];
-  unsigned uboVP;
+  SceneParams scParams;
+  AdditionalParams addParams;
 
-  SetUpScene(containerDiffuseMap, containerSpecularMap, containerEmissionMap, skyBoxCubeMap, skyBoxCubeMap2, guitarBag, singapore, shaderSingleColor, skyBox, VAOs, VBOs, EBO, screenQuadVAO, screenQuadVBO, framebuf, textureColor, mirrorQuadVAO, mirrorBuf, mirrorWidth, mirrorHeight, texMirror, objectShader, lightSourceCube, skyBoxShader, cmReflectRefract, time, deltap, randvecs, randsgn, randRadius, uboVP);
+  SetUpScene(scParams, addParams);
 
   glm::vec4 clear_color = {0.4f, 0.55f, 0.9f, 0.75f};
   glm::vec4 highlight_color = {0.4f, 0.55f, 0.9f, 0.75f};
@@ -695,42 +420,42 @@ int Engine::Main()
           // perform shader setup
           if (shaderObj_current == 0)
           {
-            objectShader = _shaders[(int)ShadersTypes::LightingCube].get();
+            scParams.objectShader = _shaders[(int)ShadersTypes::LightingCube].get();
           }
           else if (shaderObj_current == 1)
           {
-            objectShader = _shaders[(int)ShadersTypes::CubeMapReflect].get();
+            scParams.objectShader = _shaders[(int)ShadersTypes::CubeMapReflect].get();
           }
           else if (shaderObj_current == 2)
           {
-            objectShader = _shaders[(int)ShadersTypes::CubeMapRefract].get();
-            objectShader->Use();
+            scParams.objectShader = _shaders[(int)ShadersTypes::CubeMapRefract].get();
+            scParams.objectShader->Use();
             int ri = shObj_selectedRi >= 0 ? shObj_selectedRi : 0;
-            objectShader->SetFloat("refractiveIndex", refractiveIds[ri].second);
+            scParams.objectShader->SetFloat("refractiveIndex", refractiveIds[ri].second);
           }
           else if (shaderObj_current == 3)
           {
-            objectShader = _shaders[(int)ShadersTypes::LightingCubeExplosion].get();
+            scParams.objectShader = _shaders[(int)ShadersTypes::LightingCubeExplosion].get();
           }
           else if (shaderObj_current == 4)
           {
-            objectShader = _shaders[(int)ShadersTypes::VisualizeNormals].get();
+            scParams.objectShader = _shaders[(int)ShadersTypes::VisualizeNormals].get();
           }
 
           if (shaderCont_current == 0)
           {
-            cmReflectRefract = _shaders[(int)ShadersTypes::CubeMapReflect].get();
+            scParams.cmReflectRefract = _shaders[(int)ShadersTypes::CubeMapReflect].get();
           }
           else if (shaderCont_current == 1)
           {
-            cmReflectRefract = _shaders[(int)ShadersTypes::LightingCube].get();
+            scParams.cmReflectRefract = _shaders[(int)ShadersTypes::LightingCube].get();
           }
           else if (shaderCont_current == 2)
           {
-            cmReflectRefract = _shaders[(int)ShadersTypes::CubeMapRefract].get();
-            cmReflectRefract->Use();
+            scParams.cmReflectRefract = _shaders[(int)ShadersTypes::CubeMapRefract].get();
+            scParams.cmReflectRefract->Use();
             int ri = shCon_selectedRi >= 0 ? shCon_selectedRi : 0;
-            cmReflectRefract->SetFloat("refractiveIndex", refractiveIds[ri].second);
+            scParams.cmReflectRefract->SetFloat("refractiveIndex", refractiveIds[ri].second);
           }
         }
 
@@ -754,7 +479,7 @@ int Engine::Main()
 
     // Rendering
     // 1. pass
-    glBindFramebuffer(GL_FRAMEBUFFER, framebuf);
+    glBindFramebuffer(GL_FRAMEBUFFER, scParams.framebuf);
     //glClearColor(0.1f, 0.15f, 0.3f, 0.75f);
     //glClearColor(0.01f, 0.01f, 0.01f, 0.75f);
     glClearColor(clear_color.x* clear_color.w, clear_color.y* clear_color.w, clear_color.z* clear_color.w, clear_color.w);
@@ -763,11 +488,11 @@ int Engine::Main()
 
     if (!_pause)
     {
-      time = (float)glfwGetTime() - deltap;
+      addParams.time = (float)glfwGetTime() - addParams.deltap;
     }
     else
     {
-      deltap = (float)glfwGetTime() - time;
+      addParams.deltap = (float)glfwGetTime() - addParams.time;
     }
     // 4. draw the object
     auto drawScene = [&](Camera& cam, float texWidth, float texHeight)
@@ -778,7 +503,7 @@ int Engine::Main()
       glm::mat4 projection = glm::perspective(glm::radians(cam._fov), texWidth / texHeight, 0.1f, 100.0f);
       //projection = glm::ortho(-(float)_width / 256, (float)_width / 256, -(float)_height / 256, (float)_height / 256, -100.1f, 100.0f);
 
-      glBindBuffer(GL_UNIFORM_BUFFER, uboVP);
+      glBindBuffer(GL_UNIFORM_BUFFER, scParams.uboVP);
       glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(view));
       glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(projection));
       glBindBuffer(GL_UNIFORM_BUFFER, 0);
@@ -786,15 +511,15 @@ int Engine::Main()
       // draw skybox first
       glDepthMask(GL_FALSE);
       glStencilMask(0);
-      skyBoxShader->Use();
+      scParams.skyBoxShader->Use();
       // ... set view and projection matrix
-      skyBoxShader->SetMat4("skyBoxView", glm::mat4(glm::mat3(view)));
+      scParams.skyBoxShader->SetMat4("skyBoxView", glm::mat4(glm::mat3(view)));
       // skyBoxShader->SetMat4("projection", projection);
-			skyBox.Bind();
+			scParams.skyBox->Bind();
       if (shSky_selected == 1)
-        skyBoxCubeMap.Use();
+        scParams.skyBoxCubeMap->Use();
       else if (shSky_selected == 2)
-        skyBoxCubeMap2.Use();
+        scParams.skyBoxCubeMap2->Use();
       else
         glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 
@@ -804,14 +529,14 @@ int Engine::Main()
       // ... draw rest of the scene
 
       // set lighting properties
-      lightSourceCube->Use();
-      lightSourceCube->SetVec3("lightColor", glm::vec3(1.0f) * (float)_lightColorIntensity / 100.0f);
+      scParams.lightSourceCube->Use();
+      scParams.lightSourceCube->SetVec3("lightColor", glm::vec3(1.0f) * (float)_lightColorIntensity / 100.0f);
 
       // draw light source
       // lightSourceCube->SetMat4("view", view);
       // lightSourceCube->SetMat4("projection", projection);
 
-      float posTime = time / 3.0f;
+      float posTime = addParams.time / 3.0f;
       float radius = 5.0f;
       _positions.lightPos = _positions.cubePositions[0] + glm::vec3(radius * cos(posTime) / 2, radius * cos(posTime) / 3, radius * sin(posTime));
       glm::vec3 newLightPos(-0.2f, -1.0f, -0.3f);
@@ -819,53 +544,51 @@ int Engine::Main()
       glm::mat4 model(1.0f);
       model = glm::translate(model, _positions.lightPos);
       float angle;
-      float rotTime = time / 5.0f;
+      float rotTime = addParams.time / 5.0f;
       angle = -20.0f * 15.5f;
 
-      model = glm::rotate(model, glm::radians(rotTime * angle), glm::vec3(1.0f, 0.3f * sin(time), 0.5f));
+      model = glm::rotate(model, glm::radians(rotTime * angle), glm::vec3(1.0f, 0.3f * sin(addParams.time), 0.5f));
       model = glm::scale(model, glm::vec3(1.0f) * 0.2f);
-      lightSourceCube->SetMat4("model", model);
+      scParams.lightSourceCube->SetMat4("model", model);
 
-      glBindVertexArray(VAOs[1]);
+      glBindVertexArray(scParams.VAOs[1]);
       glDrawArrays(GL_TRIANGLES, 0, 36);
 
       // draw material cube(s)
-      objectShader->Use();
+      scParams.objectShader->Use();
       // objectShader->SetMat4("view", view);
       // objectShader->SetMat4("projection", projection);
 
-      shaderSingleColor.Use();
-      shaderSingleColor.SetMat4("view", view);
-      shaderSingleColor.SetMat4("projection", projection);
-      objectShader->Use();
+      scParams.shaderSingleColor->Use();
+      scParams.shaderSingleColor->SetMat4("view", view);
+      scParams.shaderSingleColor->SetMat4("projection", projection);
+      scParams.objectShader->Use();
 
       glActiveTexture(GL_TEXTURE0);
-      containerDiffuseMap.Use();
+      scParams.containerDiffuseMap->Use();
 
       glActiveTexture(GL_TEXTURE1);
-      containerSpecularMap.Use();
+      scParams.containerSpecularMap->Use();
 
       glActiveTexture(GL_TEXTURE2);
-      containerEmissionMap.Use();
+      scParams.containerEmissionMap->Use();
 
-      objectShader->SetVec3("viewPos", cam._pos);
+      scParams.objectShader->SetVec3("viewPos", cam._pos);
 
-      objectShader->SetVec3("dirLight.ambient", glm::vec3(0.1f)/* * (float)(_lightAmbIntensity  * _lightColorIntensity) / 100.0f / 100.0f*/);
-      objectShader->SetVec3("dirLight.diffuse", glm::vec3(0.0f)/* * (float)(_lightDiffIntensity * _lightColorIntensity) / 100.0f / 100.0f*/);
-      objectShader->SetVec3("dirLight.specular", glm::vec3(0.0f)/* * (float)(_lightSpecIntensity * _lightColorIntensity) / 100.0f / 100.0f*/);
-      objectShader->SetVec3("dirLight.direction", glm::vec3(0.0f, -50.0f, 0.0f));
+      scParams.objectShader->SetVec3("dirLight.ambient", glm::vec3(0.1f)/* * (float)(_lightAmbIntensity  * _lightColorIntensity) / 100.0f / 100.0f*/);
+      scParams.objectShader->SetVec3("dirLight.diffuse", glm::vec3(0.0f)/* * (float)(_lightDiffIntensity * _lightColorIntensity) / 100.0f / 100.0f*/);
+      scParams.objectShader->SetVec3("dirLight.specular", glm::vec3(0.0f)/* * (float)(_lightSpecIntensity * _lightColorIntensity) / 100.0f / 100.0f*/);
+      scParams.objectShader->SetVec3("dirLight.direction", glm::vec3(0.0f, -50.0f, 0.0f));
 
       //lightShader->SetVec3("pointLight.direction", newLightPos);
-      objectShader->SetVec3("pointLight.position", _positions.lightPos);
+      scParams.objectShader->SetVec3("pointLight.position", _positions.lightPos);
       // ambient part should not be there
-      objectShader->SetVec3("pointLight.ambient", glm::vec3(0.0f) * (float)(_lightAmbIntensity * _lightColorIntensity) / 100.0f / 100.0f);
-      objectShader->SetVec3("pointLight.diffuse", glm::vec3(1.0f) * (float)(_lightDiffIntensity * _lightColorIntensity) / 100.0f / 100.0f);
-      objectShader->SetVec3("pointLight.specular", glm::vec3(1.0f) * (float)(_lightSpecIntensity * _lightColorIntensity) / 100.0f / 100.0f);
-
-
-      objectShader->SetFloat("pointLight.constant", 1.0f);
-      objectShader->SetFloat("pointLight.linear", 0.09f);
-      objectShader->SetFloat("pointLight.quadratic", 0.032f);
+      scParams.objectShader->SetVec3("pointLight.ambient", glm::vec3(0.0f) * (float)(_lightAmbIntensity * _lightColorIntensity) / 100.0f / 100.0f);
+      scParams.objectShader->SetVec3("pointLight.diffuse", glm::vec3(1.0f) * (float)(_lightDiffIntensity * _lightColorIntensity) / 100.0f / 100.0f);
+      scParams.objectShader->SetVec3("pointLight.specular", glm::vec3(1.0f) * (float)(_lightSpecIntensity * _lightColorIntensity) / 100.0f / 100.0f);
+      scParams.objectShader->SetFloat("pointLight.constant", 1.0f);
+      scParams.objectShader->SetFloat("pointLight.linear", 0.09f);
+      scParams.objectShader->SetFloat("pointLight.quadratic", 0.032f);
 
       std::stringstream s;
       s << "pointLights[";
@@ -875,53 +598,53 @@ int Engine::Main()
 
       for (int i = 0; i < 4; ++i)
       {
-        movedPosisitons[i] = _positions.pointLightPositions[i] + glm::vec3(randRadius[i] * cos(randsgn[i] * posTime), randRadius[i] * cos(posTime), randRadius[i] * sin(randsgn[3 - i] * posTime));
+        movedPosisitons[i] = _positions.pointLightPositions[i] + glm::vec3(addParams.randRadius[i] * cos(addParams.randsgn[i] * posTime), addParams.randRadius[i] * cos(posTime), addParams.randRadius[i] * sin(addParams.randsgn[3 - i] * posTime));
         s.seekp(cur);
         s << i << "].position";
         s.put('\0');
-        objectShader->SetVec3(s.str(), movedPosisitons[i]);
+        scParams.objectShader->SetVec3(s.str(), movedPosisitons[i]);
 
         s.seekp(cur + std::streampos(3));
         s << "diffuse";
         s.put('\0');
-        objectShader->SetVec3(s.str(), glm::vec3(1.0f) * (float)(_lightDiffIntensity * _lightColorIntensity) / 100.0f / 100.0f);
+        scParams.objectShader->SetVec3(s.str(), glm::vec3(1.0f) * (float)(_lightDiffIntensity * _lightColorIntensity) / 100.0f / 100.0f);
 
         s.seekp(cur + std::streampos(3));
         s << "specular";
         s.put('\0');
-        objectShader->SetVec3(s.str(), glm::vec3(1.0f) * (float)(_lightSpecIntensity * _lightColorIntensity) / 100.0f / 100.0f);
+        scParams.objectShader->SetVec3(s.str(), glm::vec3(1.0f) * (float)(_lightSpecIntensity * _lightColorIntensity) / 100.0f / 100.0f);
 
         s.seekp(cur + std::streampos(3));
         s << "constant";
         s.put('\0');
-        objectShader->SetFloat(s.str(), 1.0f);
+        scParams.objectShader->SetFloat(s.str(), 1.0f);
 
         s.seekp(cur + std::streampos(3));
         s << "linear";
         s.put('\0');
-        objectShader->SetFloat(s.str(), 0.09f);
+        scParams.objectShader->SetFloat(s.str(), 0.09f);
 
         s.seekp(cur + std::streampos(3));
         s << "quadratic";
         s.put('\0');
-        objectShader->SetFloat(s.str(), 0.032f);
+        scParams.objectShader->SetFloat(s.str(), 0.032f);
       }
 
       // Draw all point lights
-      lightSourceCube->Use();
+      scParams.lightSourceCube->Use();
       for (auto& position : movedPosisitons)
       {
         glm::mat4 model(1.0f);
         model = glm::translate(model, position);
         float angle;
-        float rotTime = time / 5.0f;
+        float rotTime = addParams.time / 5.0f;
         angle = -20.0f * 15.5f;
 
-        model = glm::rotate(model, glm::radians(rotTime * angle), glm::vec3(1.0f, 0.3f * sin(time), 0.5f));
+        model = glm::rotate(model, glm::radians(rotTime * angle), glm::vec3(1.0f, 0.3f * sin(addParams.time), 0.5f));
         model = glm::scale(model, glm::vec3(1.0f) * 0.2f);
-        lightSourceCube->SetMat4("model", model);
+        scParams.lightSourceCube->SetMat4("model", model);
 
-        glBindVertexArray(VAOs[1]);
+        glBindVertexArray(scParams.VAOs[1]);
         glDrawArrays(GL_TRIANGLES, 0, 36);
       }
 
@@ -958,13 +681,13 @@ int Engine::Main()
         }
       };
 
-      setShaderVars(objectShader);
-      setShaderVars(cmReflectRefract);
+      setShaderVars(scParams.objectShader);
+      setShaderVars(scParams.cmReflectRefract);
 
       auto drawContainers = [&]()
       {
-        cmReflectRefract->Use();
-        glBindVertexArray(VAOs[0]);
+        scParams.cmReflectRefract->Use();
+        glBindVertexArray(scParams.VAOs[0]);
         for (int i = 0; i < _materials.size(); ++i)
         {
           auto& material = _materials[i];
@@ -977,13 +700,13 @@ int Engine::Main()
           //lightShader->SetFloat("material.shininess", 64.0f);
 
           model = glm::mat4(1.0f);
-          model = glm::translate(model, _positions.cubePositions[0] + containersXYZOffset + randvecs[i] + glm::normalize(randvecs[i]) * 2.0f);
+          model = glm::translate(model, _positions.cubePositions[0] + containersXYZOffset + addParams.randvecs[i] + glm::normalize(addParams.randvecs[i]) * 2.0f);
           //model = glm::translate(model, cubePositions[i]);
           model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f) * 1.0f);
 
           angle = rotTime * (-20.0f);
-          model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f * sin(time), 0.5f));
-          cmReflectRefract->SetMat4("model", model);
+          model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f * sin(addParams.time), 0.5f));
+          scParams.cmReflectRefract->SetMat4("model", model);
 
           glDrawArrays(GL_TRIANGLES, 0, 36);
         }
@@ -992,7 +715,7 @@ int Engine::Main()
 
       if (showContainers)
         drawContainers();
-      objectShader->Use();
+      scParams.objectShader->Use();
 
       auto drawGuitarBag = [&]()
       {
@@ -1001,24 +724,24 @@ int Engine::Main()
         model = glm::translate(model, bagPos);
         //model = glm::rotate(model, glm::degrees(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 
-        objectShader->SetMat4("model", model);
-        objectShader->SetFloat("material.shininess", 64.0f);
-        guitarBag.Draw(*objectShader);
+        scParams.objectShader->SetMat4("model", model);
+        scParams.objectShader->SetFloat("material.shininess", 64.0f);
+        scParams.guitarBag->Draw(*scParams.objectShader);
 
         if (highlight)
         {
           model = glm::scale(model, glm::vec3(1.0f) + glm::vec3(highlightAmount));
-          shaderSingleColor.Use();
-          shaderSingleColor.SetVec4("highLightColor", highlight_color);
-          shaderSingleColor.SetMat4("model", model);
-          guitarBag.Highlight(shaderSingleColor);
+          scParams.shaderSingleColor->Use();
+          scParams.shaderSingleColor->SetVec4("highLightColor", highlight_color);
+          scParams.shaderSingleColor->SetMat4("model", model);
+          scParams.guitarBag->Highlight(*scParams.shaderSingleColor);
         }
 
       };
 
       auto drawSingapore = [&]()
       {
-        objectShader->Use();
+        scParams.objectShader->Use();
         model = glm::mat4(1.0);
         glm::vec3 singaporePos(0.0f, -5.0f, 1.0f);
         model = glm::translate(model, singaporePos);
@@ -1034,20 +757,20 @@ int Engine::Main()
         lightShader->SetFloat("dirLight.linear", 0.0f);
         lightShader->SetFloat("dirLight.quadratic", 0.0f);*/
 
-        objectShader->SetMat4("model", model);
+        scParams.objectShader->SetMat4("model", model);
         /*lightShader->SetVec3("material.ambient", obsidian.ambient);
         lightShader->SetVec3("material.diffuse", obsidian.diffuse);
         lightShader->SetVec3("material.specular", obsidian.specular);
         lightShader->SetFloat("material.shininess", obsidian.shininess);*/
 
-        singapore.Draw(*objectShader);
+        scParams.singapore->Draw(*scParams.objectShader);
         if (highlight)
         {
           model = glm::scale(model, glm::vec3(1.0f) + glm::vec3(highlightAmount));
-          shaderSingleColor.Use();
-          shaderSingleColor.SetVec4("highLightColor", highlight_color);
-          shaderSingleColor.SetMat4("model", model);
-          singapore.Highlight(shaderSingleColor);
+          scParams.shaderSingleColor->Use();
+          scParams.shaderSingleColor->SetVec4("highLightColor", highlight_color);
+          scParams.shaderSingleColor->SetMat4("model", model);
+          scParams.singapore->Highlight(*scParams.shaderSingleColor);
         }
       };
       //destructor.Draw(*lightShader);
@@ -1064,7 +787,7 @@ int Engine::Main()
     _camera._right *= -1;*/
     if (showMirror)
     {
-      glBindFramebuffer(GL_FRAMEBUFFER, mirrorBuf);
+      glBindFramebuffer(GL_FRAMEBUFFER, scParams.mirrorBuf);
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
       Camera mirrorCam(_camera);
@@ -1083,9 +806,9 @@ int Engine::Main()
     _currentEffect->Use();
     glm::mat4 rtTexTransform(1.0f);
     _currentEffect->SetMat4("transform", rtTexTransform);
-    glBindVertexArray(screenQuadVAO);
+    glBindVertexArray(scParams.screenQuadVAO);
     glDisable(GL_DEPTH_TEST);
-    glBindTexture(GL_TEXTURE_2D, textureColor);
+    glBindTexture(GL_TEXTURE_2D, scParams.textureColor);
     glDrawArrays(GL_TRIANGLES, 0, 6);
 
     // Draw mirror
@@ -1094,9 +817,9 @@ int Engine::Main()
       //rtTexTransform = glm::translate(rtTexTransform, glm::vec3(0.5f, -0.5f, 0.0f));
       //rtTexTransform = glm::scale(rtTexTransform, glm::vec3(0.33f));
       _currentEffect->SetMat4("transform", rtTexTransform);
-      glBindVertexArray(mirrorQuadVAO);
-      glBindTexture(GL_TEXTURE_2D, texMirror);
-      glTexImage2D(GL_TEXTURE_2D, 2, GL_RGB, mirrorWidth, mirrorHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+      glBindVertexArray(scParams.mirrorQuadVAO);
+      glBindTexture(GL_TEXTURE_2D, scParams.texMirror);
+      glTexImage2D(GL_TEXTURE_2D, 2, GL_RGB, scParams.mirrorWidth, scParams.mirrorHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
 
       /*glBindRenderbuffer(GL_RENDERBUFFER, mirrorRenderBuf);
       glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, mirrorWidth / 4, mirrorHeight / 4);
@@ -1132,12 +855,12 @@ int Engine::Main()
 
   // optional: de-allocate all resources once they've outlived their purpose:
   // ------------------------------------------------------------------------
-  glDeleteVertexArrays(2, VAOs);
-  glDeleteBuffers(2, VBOs);
-  glDeleteBuffers(2, EBO);
+  glDeleteVertexArrays(2, scParams.VAOs);
+  glDeleteBuffers(2, scParams.VBOs);
+  glDeleteBuffers(2, scParams.EBO);
 
-  glDeleteVertexArrays(1, &screenQuadVAO);
-  glDeleteBuffers(1, &screenQuadVBO);
+  glDeleteVertexArrays(1, &scParams.screenQuadVAO);
+  glDeleteBuffers(1, &scParams.screenQuadVBO);
 
   glfwTerminate();
   return 0;
@@ -1575,6 +1298,251 @@ void Engine::InitImGui()
   bool show_demo_window = true;
   bool show_another_window = false;
   ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+}
+
+void Engine::SetUpScene(SceneParams &sceneParams, AdditionalParams &additionals) 
+{
+  	// obtain resources path
+	std::string root = R"(../Resources/)";
+
+	// texture loading from image
+	Texture texture1("container", root + "container.jpg");
+	Texture texture2("AwesomeFace", root + "awesomeface.png", true);
+	texture1.Load();
+	texture2.Load();
+
+	sceneParams.containerDiffuseMap = std::make_unique<Texture>("containerWood", root + "container2.png");
+	sceneParams.containerSpecularMap = std::make_unique<Texture>("containerSteelBorder", root + "container2_specular.png");
+	sceneParams.containerEmissionMap = std::make_unique<Texture>("containerEmission", root + "matrix_container.png");
+	sceneParams.containerDiffuseMap->Load();
+	sceneParams.containerSpecularMap->Load();
+	sceneParams.containerEmissionMap->Load();
+
+	sceneParams.skyBoxCubeMap = std::make_unique<CubeMap>("LearnOpenGLskyBox", "skybox", root);
+	sceneParams.skyBoxCubeMap->Load();
+
+	sceneParams.skyBoxCubeMap2 = std::make_unique<CubeMap>("LearnOpenGLskyBox2", "skybox2", root, ".png");
+	sceneParams.skyBoxCubeMap2->Load();
+
+	sceneParams.guitarBag = std::make_unique<Model>("../Resources/backpack/backpack.obj", nullptr, true);
+	sceneParams.singapore = std::make_unique<Model>("../Resources/singapore/untitled.obj");
+	//Model destructor("../Resources/destructor-pesado-imperial-isd-1/Destructor imperial ISD 1.obj");
+	//Model sponza("../Resources/sponza/source/sponza.fbx", "../Resources/sponza/textures", false);
+
+	std::string shaderRoot = "../LearnOpenGL_guide/shaders/";
+	sceneParams.shaderSingleColor = std::make_unique<Shader>((shaderRoot + "2.stencil_testing.vs").c_str(), (shaderRoot + "2.stencil_single_color.fs").c_str());
+
+	sceneParams.skyBox = std::make_unique<SkyBox>(_vertices[9]);
+
+	glGenVertexArrays(2, sceneParams.VAOs);
+
+	glGenBuffers(2, sceneParams.VBOs);
+
+	glGenBuffers(2, sceneParams.EBO);
+
+	// 1. bind Vertex Array Object
+	glBindVertexArray(sceneParams.VAOs[0]);
+	// 2. copy our vertices array in a buffer for OpenGL to use
+
+	auto& cubeLsource = _vertices[4];
+	auto& cubeOb = _vertices[6];
+
+	glBindBuffer(GL_ARRAY_BUFFER, sceneParams.VBOs[0]);
+	glBufferData(GL_ARRAY_BUFFER, cubeOb.size() * sizeof(float), cubeOb.data(), GL_STATIC_DRAW);
+
+	// 3. then set our vertex attributes pointers
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
+
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 *sizeof(float)));
+	glEnableVertexAttribArray(2);
+
+	// note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	// You can unbind the VAO afterwards so other VAO calls won't accidentally modify this VAO, but this rarely happens. Modifying other
+	// VAOs requires a call to glBindVertexArray anyways so we generally don't unbind VAOs (nor VBOs) when it's not directly necessary.
+	glBindVertexArray(0);
+
+	// remember: do NOT unbind the EBO while a VAO is active as the bound element buffer object IS stored in the VAO; keep the EBO bound.
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+	//------------- bind vertex array object for 'light cube'
+	glBindVertexArray(sceneParams.VAOs[1]);
+
+	glBindBuffer(GL_ARRAY_BUFFER, sceneParams.VBOs[1]);
+	glBufferData(GL_ARRAY_BUFFER, cubeLsource.size() * sizeof(float), cubeLsource.data(), GL_STATIC_DRAW);
+
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(0);
+	/*glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+  glEnableVertexAttribArray(1);*/
+
+	// note that this is allowed, the call to glVertexAttribPointer registered VBO as the vertex attribute's bound vertex buffer object so afterwards we can safely unbind
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	glBindVertexArray(0);
+
+	glGenVertexArrays(1, &sceneParams.screenQuadVAO);
+	glGenBuffers(1, &sceneParams.screenQuadVBO);
+	glBindVertexArray(sceneParams.screenQuadVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, sceneParams.screenQuadVBO);
+
+	auto& quadVertices = _vertices[7];
+	glBufferData(GL_ARRAY_BUFFER, quadVertices.size() * sizeof(float), quadVertices.data(), GL_STATIC_DRAW);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+
+	glGenFramebuffers(1, &sceneParams.framebuf);
+	glBindFramebuffer(GL_FRAMEBUFFER, sceneParams.framebuf);
+
+	const GLsizei Width = _width, Height = _height;
+	glGenTextures(1, &sceneParams.textureColor);
+	glBindTexture(GL_TEXTURE_2D, sceneParams.textureColor);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, Width, Height, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	/*glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);*/
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	// attach the color texture to the framebuffer
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, sceneParams.textureColor, 0);
+
+	// Create render buffer object
+	unsigned renderBuf;
+	glGenRenderbuffers(1, &renderBuf);
+	glBindRenderbuffer(GL_RENDERBUFFER, renderBuf);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, Width, Height);
+	glBindRenderbuffer(GL_RENDERBUFFER, 0);
+
+	// attach render buffer to framebuffer
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, renderBuf);
+
+	// framebuffer must be complete
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+	{
+		std::cout << "NULLENGINE::ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
+	}
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	// Render to mirror texture
+	unsigned mirrorQuadVBO;
+	glGenVertexArrays(1, &sceneParams.mirrorQuadVAO);
+	glGenBuffers(1, &mirrorQuadVBO);
+	glBindVertexArray(sceneParams.mirrorQuadVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, mirrorQuadVBO);
+
+	auto& mirrorVertices = _vertices[8];
+	glBufferData(GL_ARRAY_BUFFER, mirrorVertices.size() * sizeof(float), mirrorVertices.data(), GL_STATIC_DRAW);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+
+	glGenFramebuffers(1, &sceneParams.mirrorBuf);
+	glBindFramebuffer(GL_FRAMEBUFFER, sceneParams.mirrorBuf);
+
+	sceneParams.mirrorWidth = _width;
+	sceneParams.mirrorHeight = _height;
+	glGenTextures(1, &sceneParams.texMirror);
+	glBindTexture(GL_TEXTURE_2D, sceneParams.texMirror);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, sceneParams.mirrorWidth, sceneParams.mirrorHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, sceneParams.texMirror, 0);
+
+	unsigned mirrorRenderBuf;
+	glGenRenderbuffers(1, &mirrorRenderBuf);
+	glBindRenderbuffer(GL_RENDERBUFFER, mirrorRenderBuf);
+	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, sceneParams.mirrorWidth, sceneParams.mirrorHeight);
+	glBindRenderbuffer(GL_RENDERBUFFER, 0);
+
+	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, mirrorRenderBuf);
+
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+	{
+		std::cout << "NULLENGINE::ERROR::FRAMEBUFFER:: Mirror framebuffer not complete!" << std::endl;
+	}
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	//-------------------------------
+
+	// Wireframe or normal drawing mode
+	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+
+	_shaders[(int)ShadersTypes::VertexFragment0]->Use();
+	_shaders[(int)ShadersTypes::VertexFragment0]->SetInt("texture1", 0);
+	_shaders[(int)ShadersTypes::VertexFragment0]->SetInt("texture2", 1);
+
+	sceneParams.objectShader = _shaders[(int)ShadersTypes::LightingCube].get();
+	sceneParams.lightSourceCube = _shaders[(int)ShadersTypes::LightSource].get();
+	sceneParams.skyBoxShader = _shaders[(int)ShadersTypes::SkyBoxS].get();
+	sceneParams.cmReflectRefract = _shaders[(int)ShadersTypes::CubeMapReflect].get();
+
+	std::vector<Shader*> activeShaders = {sceneParams.objectShader, sceneParams.lightSourceCube};// _shaders[0].get()};
+
+	// this enables Z-buffer so that faces overlap correctly when projected to the screen
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_STENCIL_TEST);
+	glEnable(GL_CULL_FACE);
+	glFrontFace(GL_CCW);
+
+	additionals.time = 0.0f;
+	float timeLast = 0.0f;
+	additionals.deltap = 0.0f;
+
+	// randomize some cube positions
+	std::random_device r;
+	std::mt19937 gen(r());
+	float range = 5.0f;
+	std::uniform_real_distribution<float> uniform_dist(-range, range);
+
+	for (int i = 0; i < _materials.size(); ++i)
+	{
+		glm::vec3 randvec((float)uniform_dist(gen), (float)uniform_dist(gen), (float)uniform_dist(gen));
+		additionals.randvecs.push_back(randvec);
+	}
+
+	std::uniform_int_distribution<int> uni_sgn(1, 2);
+	std::uniform_real_distribution<float> uni_rad(5.0f, 20.0f);
+	for (int i = 0; i < 4; ++i)
+	{
+		additionals.randsgn[i] = uni_sgn(gen) == 1 ? -1 : 1;
+		additionals.randRadius[i] = (int)uni_rad(gen);
+	}
+
+	sceneParams.objectShader->Use();
+	sceneParams.objectShader->SetInt("material.diffuse", 0);
+
+	glActiveTexture(GL_TEXTURE0);
+	sceneParams.containerDiffuseMap->Use();
+
+	sceneParams.objectShader->SetInt("material.specular", 1);
+	glActiveTexture(GL_TEXTURE1);
+	sceneParams.containerSpecularMap->Use();
+
+	sceneParams.objectShader->SetInt("material.emissive", 2);
+	glActiveTexture(GL_TEXTURE2);
+	sceneParams.containerEmissionMap->Use();
+
+	glGenBuffers(1, &sceneParams.uboVP);
+	glBindBuffer(GL_UNIFORM_BUFFER, sceneParams.uboVP);
+	// allocate memory for two float4x4 matrices
+	glBufferData(GL_UNIFORM_BUFFER, 2 * sizeof(glm::mat4), nullptr, GL_DYNAMIC_DRAW);
+
+	glBindBufferRange(GL_UNIFORM_BUFFER, 0, sceneParams.uboVP, 0, 2 * sizeof(glm::mat4));
+	glBindBuffer(GL_UNIFORM_BUFFER, 0);
 }
 
 void Engine::InitPositions()

@@ -29,17 +29,92 @@ namespace NullEngine {
 		friend class Camera;
 
 	public:
+		//! Scene positions?
 		struct Positions
 		{
 			std::vector<glm::vec3> cubePositions;
 			std::vector<glm::vec3> pointLightPositions;
 			glm::vec3 lightPos;
 		};
+		//! Scene input
+		struct SceneParams
+		{
+			//! Textures scene input
+			std::unique_ptr<Texture> containerDiffuseMap;
+			std::unique_ptr<Texture> containerSpecularMap;
+			std::unique_ptr<Texture> containerEmissionMap;
+			std::unique_ptr<CubeMap> skyBoxCubeMap;
+			std::unique_ptr<CubeMap> skyBoxCubeMap2;
+			//! Models scene input
+			std::unique_ptr<Model> guitarBag;
+			std::unique_ptr<Model> singapore;
+			std::unique_ptr<Shader> shaderSingleColor;
+			Shader* lightSourceCube;
+			Shader* objectShader;
+			Shader* skyBoxShader;
+			Shader* cmReflectRefract;
+
+			std::unique_ptr<SkyBox> skyBox;
+			unsigned int VAOs[2]; // sould be 2
+			unsigned int VBOs[2];
+			unsigned int EBO[2];
+			unsigned screenQuadVAO;
+			unsigned screenQuadVBO;
+			unsigned framebuf;
+			unsigned textureColor;
+			unsigned mirrorQuadVAO;
+			unsigned mirrorBuf;
+			GLsizei mirrorWidth;
+			GLsizei mirrorHeight;
+			unsigned texMirror;
+			unsigned uboVP;
+		};
+		//! Additional params...
+		struct AdditionalParams
+		{
+			float time;
+			float deltap;
+			std::vector<glm::vec3> randvecs;
+			int randsgn[4];
+			int randRadius[4];
+		};
 
 		static Engine* _engineContext;
 
 		//! Ctor
 		Engine() { _camera = Camera(_width / 2.0f, _height / 2.0f); };
+
+		//! Dtor
+		virtual ~Engine() override = default;
+		//! Later initialization
+		virtual void Init() override;
+		//! Main
+		virtual int Main() override;
+		//! GetGlfwWindow
+		GLFWwindow* GetGlfwWindow() { return _window; }
+
+	private:
+		//! Init GL Framework
+		void InitGLFW();
+		//! Create shaders
+		void CreateShaders();
+		void InitPhongMaterials();
+		void InitPositions();
+		//!
+		void InitVertices();
+		void InitImGui();
+
+		//! Set up some scene #TODO replace by Scene class
+		void SetUpScene(SceneParams& sceneParams, AdditionalParams& additionals);
+		//! Process input
+		void processInput(float dt);
+		void ShowAppDockSpace(bool* p_open);
+
+		static void Framebuffer_size_callback(GLFWwindow* window, int width, int height);
+
+		static void Mouse_callback(GLFWwindow* window, double xpos, double ypos);
+		static void Scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
+
 	private:
 		//! GUI
 		ImGuiIO* _io = nullptr;
@@ -73,56 +148,6 @@ namespace NullEngine {
 
 		//! Some Scene #TODO
 		Scene someScene;
-
-	public:
-		//! Dtor
-		virtual ~Engine() override = default;
-		//! Later initialization
-		virtual void Init() override;
-		//! Main
-		virtual int Main() override;
-		//! GetGlfwWindow
-		GLFWwindow* GetGlfwWindow() { return _window; }
-	private:
-		//! Init GL Framework
-		void InitGLFW();
-		//! Create shaders
-		void CreateShaders();
-		void InitPhongMaterials();
-		void InitPositions();
-		//!
-		void InitVertices();
-		void InitImGui();
-
-		//! Set up some scene #TODO replace by Scene class
-		void Engine::SetUpScene(Texture &containerDiffuseMap, Texture &containerSpecularMap, Texture &containerEmissionMap, CubeMap &skyBoxCubeMap, CubeMap &skyBoxCubeMap2, Model &guitarBag, Model &singapore, Shader &shaderSingleColor, Engine::SkyBox &skyBox, unsigned int (&VAOs)[2], unsigned int (&VBOs)[2], unsigned int (&EBO)[2], unsigned &screenQuadVAO, unsigned &screenQuadVBO, unsigned &framebuf, unsigned &textureColor, unsigned &mirrorQuadVAO, unsigned &mirrorBuf, GLsizei &mirrorWidth, GLsizei &mirrorHeight, unsigned &texMirror, Shader *&objectShader,
-														Shader *&lightSourceCube, Shader *&skyBoxShader, Shader *&cmReflectRefract, float &time, float &deltap, std::vector<glm::vec3> &randvecs, int (&randsgn)[4], int (&randRadius)[4], unsigned &uboVP)
-		//! Process input
-		void processInput(float dt);
-		void ShowAppDockSpace(bool* p_open);
-		//************************************
-		// Method:    Framebuffer_size_callback
-		// FullName:  NullEngine::Engine::Framebuffer_size_callback
-		// Access:    private
-		// Returns:   void
-		// Qualifier:
-		// Parameter: GLFWwindow * window
-		// Parameter: int width
-		// Parameter: int height
-		//************************************
-		static void Framebuffer_size_callback(GLFWwindow* window, int width, int height);
-		//************************************
-		// Method:    Mouse_callback
-		// FullName:  NullEngine::Engine::Mouse_callback
-		// Access:    private
-		// Returns:   void
-		// Qualifier:
-		// Parameter: GLFWwindow * window
-		// Parameter: double xpos
-		// Parameter: double ypos
-		//************************************
-		static void Mouse_callback(GLFWwindow* window, double xpos, double ypos);
-		static void Scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 	};
 
 	enum class ShadersTypes
